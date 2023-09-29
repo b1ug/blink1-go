@@ -170,6 +170,17 @@ func convLightState(st LightState) DeviceLightState {
 	}
 }
 
+// clampFloat64 clamps the specified value to the range [min, max].
+func clampFloat64(val, min, max float64) float64 {
+	if val < min {
+		return min
+	}
+	if val > max {
+		return max
+	}
+	return val
+}
+
 // Migrated from https://github.com/todbot/blink1-tool/blob/92661e6d731b46d4bf82e2506c105c5fe433b57d/blink1-lib.c#L676-L700
 // Original values from http://rgb-123.com/ws2812-color-output/
 //     GammaE=255*(res/255).^(1/.45)
