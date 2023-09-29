@@ -1,6 +1,9 @@
 package blink1
 
 import (
+	"image/color"
+	"time"
+
 	hid "github.com/b1ug/gid"
 )
 
@@ -24,4 +27,32 @@ func HSBToRGB(hue, saturation, brightness float64) (r, g, b uint8) {
 	saturation = clampFloat64(saturation, 0, 100)
 	brightness = clampFloat64(brightness, 0, 100)
 	return convHSBToRGB(hue, saturation/100, brightness/100)
+}
+
+// NewLightState returns a new LightState with the given color and fade time.
+func NewLightState(cl color.Color, fadeTime time.Duration, ledN LEDIndex) LightState {
+	return LightState{
+		Color:    cl,
+		LED:      ledN,
+		FadeTime: fadeTime,
+	}
+}
+
+// NewLightStateRGB returns a new LightState with the given RGB color and fade time.
+func NewLightStateRGB(r, g, b uint8, fadeTime time.Duration, ledN LEDIndex) LightState {
+	return LightState{
+		Color:    convRGBToColor(r, g, b),
+		LED:      ledN,
+		FadeTime: fadeTime,
+	}
+}
+
+// NewLightStateHSB returns a new LightState with the given HSB/HSV color and fade time.
+// Valid hue range is [0, 360], saturation range and brightness/value range is [0, 100].
+func NewLightStateHSB(h, s, b float64, fadeTime time.Duration, ledN LEDIndex) LightState {
+	return LightState{
+		Color:    convRGBToColor(HSBToRGB(h, s, b)),
+		LED:      ledN,
+		FadeTime: fadeTime,
+	}
 }
