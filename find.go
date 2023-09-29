@@ -31,7 +31,7 @@ func FindNextDeviceInfo() (di *hid.DeviceInfo, err error) {
 		}
 
 		// check
-		if di.VendorID == b1VendorID && di.ProductID == b1ProductID {
+		if IsBlink1Device(di) {
 			return di, nil
 		}
 	}
@@ -65,7 +65,7 @@ func OpenNextController() (*Controller, error) {
 func ListDeviceInfo() []*hid.DeviceInfo {
 	var infos []*hid.DeviceInfo
 	for di := range hid.Devices() {
-		if di.VendorID == b1VendorID && di.ProductID == b1ProductID {
+		if IsBlink1Device(di) {
 			infos = append(infos, di)
 		}
 	}

@@ -35,7 +35,7 @@ func OpenDevice(info *hid.DeviceInfo) (*Device, error) {
 	if info == nil {
 		return nil, errNilDeviceInfo
 	}
-	if info.VendorID != b1VendorID || info.ProductID != b1ProductID {
+	if !IsBlink1Device(info) {
 		return nil, errNotBlink1
 	}
 
