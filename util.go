@@ -42,15 +42,30 @@ func getMaxPattern(gen uint16) uint {
 	return maxPattern
 }
 
-// convHSBToColor converts HSB to color.Color. The hue is in degrees (0-360), saturation and brightness/value are percent in the range [0, 1].
+// convHSBToColor converts HSB to color.Color. The hue is in degrees (0-360), saturation and brightness/value are percent in the range [0, 100].
 func convHSBToColor(h, s, v float64) color.Color {
 	return convRGBToColor(convHSBToRGB(h, s, v))
 }
 
-// convHSBToRGB converts HSB to 8-bit RGB values. The hue is in degrees (0-360), saturation and brightness/value are percent in the range [0, 1].
+// clampFloat64 clamps the specified value to the range [min, max].
+func clampFloat64(val, min, max float64) float64 {
+	if val < min {
+		return min
+	}
+	if val > max {
+		return max
+	}
+	return val
+}
+
+// convHSBToRGB converts HSB to 8-bit RGB values.
+// The hue is in degrees (0-360), saturation and brightness/value are percent in the range [0, 100].
+// Values outside of the valid range will be clamped to the range.
 func convHSBToRGB(h, s, v float64) (r, g, b uint8) {
 	h = math.Mod(h, 360)
 	h /= 60
+	s = clampFloat64(s, 0, 100) / 100
+	v = clampFloat64(v, 0, 100) / 100
 
 	i := math.Floor(h)
 	f := h - i
@@ -173,17 +188,6 @@ func convLightState(st LightState) DeviceLightState {
 		LED:          st.LED,
 		FadeTimeMsec: uint(st.FadeTime.Milliseconds()),
 	}
-}
-
-// clampFloat64 clamps the specified value to the range [min, max].
-func clampFloat64(val, min, max float64) float64 {
-	if val < min {
-		return min
-	}
-	if val > max {
-		return max
-	}
-	return val
 }
 
 // Migrated from https://github.com/todbot/blink1-tool/blob/92661e6d731b46d4bf82e2506c105c5fe433b57d/blink1-lib.c#L676-L700
