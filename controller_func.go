@@ -73,7 +73,7 @@ func (c *Controller) PlayHSB(hue, saturation, brightness float64) error {
 }
 
 // ReadColor reads the current color of the specified LED.
-func (c *Controller) ReadColor(ledN LEDType) (color.Color, error) {
+func (c *Controller) ReadColor(ledN LEDIndex) (color.Color, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

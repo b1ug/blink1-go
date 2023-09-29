@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-// LEDType represents a LED on the blink(1) device
-type LEDType byte
+// LEDIndex represents LED on the blink(1) device
+type LEDIndex byte
 
 const (
 	// LEDAll represents all LEDs on the blink(1) device
-	LEDAll LEDType = iota
+	LEDAll LEDIndex = iota
 	// LED1 represents the first LED on the blink(1) device, usually the top one, with 'blink(1)' label
 	LED1
 	// LED2 represents the second LED on the blink(1) device, usually the bottom one, with 'ThingM' logo
@@ -19,7 +19,7 @@ const (
 )
 
 // ToByte converts LEDType to byte, and returns 0 if the LEDType is invalid.
-func (l LEDType) ToByte() byte {
+func (l LEDIndex) ToByte() byte {
 	if l < LEDAll || l > LED2 {
 		return byte(LEDAll)
 	}
@@ -41,9 +41,9 @@ func (st DevicePatternState) String() string {
 
 // DeviceLightState is a blink(1) light state for low-level APIs.
 type DeviceLightState struct {
-	R, G, B      byte    // RGB values
-	LED          LEDType // Which LED to address (0=all, 1=1st LED, 2=2nd LED)
-	FadeTimeMsec uint    // Fade time in milliseconds
+	R, G, B      byte     // RGB values
+	LED          LEDIndex // Which LED to address (0=all, 1=1st LED, 2=2nd LED)
+	FadeTimeMsec uint     // Fade time in milliseconds
 }
 
 func (st DeviceLightState) String() string {
@@ -53,7 +53,7 @@ func (st DeviceLightState) String() string {
 // LightState is a blink(1) light state for high-level APIs.
 type LightState struct {
 	Color    color.Color   // Color to set
-	LED      LEDType       // Which LED to address (0=all, 1=1st LED, 2=2nd LED)
+	LED      LEDIndex      // Which LED to address (0=all, 1=1st LED, 2=2nd LED)
 	FadeTime time.Duration // Fade time to state
 }
 
