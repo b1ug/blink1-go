@@ -10,8 +10,10 @@ import (
 )
 
 var (
-	errNilDeviceInfo = errors.New("b1: nil device info")
-	errNotBlink1     = errors.New("b1: device is not blink(1)")
+	// common errors
+	errNilDeviceInfo  = errors.New("b1: nil device info")
+	errNotBlink1      = errors.New("b1: device is not blink(1)")
+	errDeviceNotFound = fmt.Errorf("b1: device not found")
 )
 
 // Device represents a blink(1) device and provides low-level APIs using HID commands for direct control.
@@ -33,7 +35,7 @@ func OpenDevice(info *hid.DeviceInfo) (*Device, error) {
 	if info == nil {
 		return nil, errNilDeviceInfo
 	}
-	if info.VendorID != b1VendorID || info.ProductID != b1ProductID {
+	if !IsBlink1Device(info) {
 		return nil, errNotBlink1
 	}
 

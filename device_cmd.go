@@ -8,7 +8,7 @@ import "fmt"
 // The ledN parameter specifies which LED to control: 0=all, 1=top LED, 2=bottom LED.
 //
 // Returns an error if there was a problem communicating with the device.
-func (b1 *Device) FadeToRGB(r, g, b byte, fadeMsec uint, ledN LEDType) error {
+func (b1 *Device) FadeToRGB(r, g, b byte, fadeMsec uint, ledN LEDIndex) error {
 	// command data
 	buf := make([]byte, cmdBufSize)
 	buf[0] = reportID
@@ -27,7 +27,7 @@ func (b1 *Device) FadeToRGB(r, g, b byte, fadeMsec uint, ledN LEDType) error {
 // For mk2+ devices, ledN > 0 will set all LEDs to the white color (255, 255, 255) and ignore the RGB values due to a firmware bug.
 //
 // Returns an error if there was a problem communicating with the device.
-func (b1 *Device) SetRGBNow(r, g, b byte, ledN LEDType) error {
+func (b1 *Device) SetRGBNow(r, g, b byte, ledN LEDIndex) error {
 	// command data
 	buf := make([]byte, cmdBufSize)
 	buf[0] = reportID
@@ -45,7 +45,7 @@ func (b1 *Device) SetRGBNow(r, g, b byte, ledN LEDType) error {
 // For mk2+ devices, ledN == 0 will return the RGB values of the first LED.
 //
 // Returns the RGB values or an error if there was a problem communicating with the device.
-func (b1 *Device) ReadRGB(ledN LEDType) (r, g, b byte, err error) {
+func (b1 *Device) ReadRGB(ledN LEDIndex) (r, g, b byte, err error) {
 	// command data
 	buf := make([]byte, cmdBufSize)
 	buf[0] = reportID
@@ -180,7 +180,7 @@ func (b1 *Device) ReadPatternLine(pos uint) (st DeviceLightState, err error) {
 	// parse result
 	st.R, st.G, st.B = buf[2], buf[3], buf[4]
 	st.FadeTimeMsec = convFadeMsToDurMs(buf[5], buf[6])
-	st.LED = LEDType(buf[7])
+	st.LED = LEDIndex(buf[7])
 	return st, nil
 }
 

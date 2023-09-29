@@ -61,19 +61,17 @@ func (c *Controller) PlayRGB(r, g, b byte) error {
 
 // PlayHSB fades the all LED to the specified HSB/HSV color immediately.
 // Valid hue range is [0, 360], saturation range and brightness/value range is [0, 100].
+// Values outside of the valid range will be clamped to the range.
 func (c *Controller) PlayHSB(hue, saturation, brightness float64) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if hue < 0 || hue > 360 || saturation < 0 || saturation > 100 || brightness < 0 || brightness > 100 {
-		return fmt.Errorf("b1: invalid HSB color: hue=%f, saturation=%f, brightness=%f", hue, saturation, brightness)
-	}
-	r, g, b := degammaRGB(convHSBToRGB(hue, saturation/100, brightness/100))
+	r, g, b := degammaRGB(convHSBToRGB(hue, saturation, brightness))
 	return c.dev.SetRGBNow(r, g, b, LEDAll)
 }
 
 // ReadColor reads the current color of the specified LED.
-func (c *Controller) ReadColor(ledN LEDType) (color.Color, error) {
+func (c *Controller) ReadColor(ledN LEDIndex) (color.Color, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

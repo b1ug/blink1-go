@@ -1,7 +1,7 @@
 package blink1
 
 import (
-	"fmt"
+	"sort"
 	"sync"
 
 	hid "github.com/b1ug/gid"
@@ -10,9 +10,6 @@ import (
 var (
 	devInfoMu sync.RWMutex
 	devInfoCh <-chan *hid.DeviceInfo
-
-	// common errors
-	errDeviceNotFound = fmt.Errorf("b1: device not found")
 )
 
 // FindNextDeviceInfo returns the next HID device info of a blink(1) device which is connected to the system.
@@ -35,7 +32,7 @@ func FindNextDeviceInfo() (di *hid.DeviceInfo, err error) {
 		}
 
 		// check
-		if di.VendorID == b1VendorID && di.ProductID == b1ProductID {
+		if IsBlink1Device(di) {
 			return di, nil
 		}
 	}
@@ -65,13 +62,52 @@ func OpenNextController() (*Controller, error) {
 	return OpenController(di)
 }
 
-// ListDeviceInfo returns all HID device info of all blink(1) devices which are connected to the system.
+// OpenDeviceBySerialNumber finds a connected blink(1) device with serial number and opens it as device.
+func OpenDeviceBySerialNumber(sn string) (*Device, error) {
+	// find
+	di, err := FindDeviceInfoBySerialNumber(sn)
+	if err != nil {
+		return nil, err
+	}
+
+	// open
+	return OpenDevice(di)
+}
+
+// OpenControllerBySerialNumber finds a connected blink(1) device with serial number and opens it as controller.
+func OpenControllerBySerialNumber(sn string) (*Controller, error) {
+	// find
+	di, err := FindDeviceInfoBySerialNumber(sn)
+	if err != nil {
+		return nil, err
+	}
+
+	// open
+	return OpenController(di)
+}
+
+// FindDeviceInfoBySerialNumber finds a connected blink(1) device with serial number and returns its HID device info.
+func FindDeviceInfoBySerialNumber(sn string) (*hid.DeviceInfo, error) {
+	// enumerate
+	for di := range hid.Devices() {
+		if IsBlink1Device(di) && di.SerialNumber == sn {
+			return di, nil
+		}
+	}
+	// not found
+	return nil, errDeviceNotFound
+}
+
+// ListDeviceInfo returns all HID device info of all blink(1) devices which are connected to the system. The returned slice is sorted by serial number.
 func ListDeviceInfo() []*hid.DeviceInfo {
 	var infos []*hid.DeviceInfo
 	for di := range hid.Devices() {
-		if di.VendorID == b1VendorID && di.ProductID == b1ProductID {
+		if IsBlink1Device(di) {
 			infos = append(infos, di)
 		}
 	}
+	sort.SliceStable(infos, func(i, j int) bool {
+		return infos[i].SerialNumber < infos[j].SerialNumber
+	})
 	return infos
 }
