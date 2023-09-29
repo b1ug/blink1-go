@@ -3,6 +3,8 @@
 // Conversely, the high-level interface, represented by the Controller type, simplifies device access by providing a user-friendly API suited for task execution.
 package blink1
 
+// methods in this file primarily serve as internal helper functions
+
 import (
 	"fmt"
 	"image/color"

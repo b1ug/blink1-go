@@ -1,7 +1,6 @@
 package blink1
 
 import (
-	"fmt"
 	"sync"
 
 	hid "github.com/b1ug/gid"
@@ -10,9 +9,6 @@ import (
 var (
 	devInfoMu sync.RWMutex
 	devInfoCh <-chan *hid.DeviceInfo
-
-	// common errors
-	errDeviceNotFound = fmt.Errorf("b1: device not found")
 )
 
 // FindNextDeviceInfo returns the next HID device info of a blink(1) device which is connected to the system.
