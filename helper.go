@@ -49,7 +49,7 @@ func NewLightStateRGB(r, g, b uint8, fadeTime time.Duration, ledN LEDIndex) Ligh
 // Valid hue range is [0, 360], saturation range and brightness/value range is [0, 100].
 func NewLightStateHSB(h, s, b float64, fadeTime time.Duration, ledN LEDIndex) LightState {
 	return LightState{
-		Color:    convRGBToColor(HSBToRGB(h, s, b)),
+		Color:    convHSBToColor(h, s, b),
 		LED:      ledN,
 		FadeTime: fadeTime,
 	}
