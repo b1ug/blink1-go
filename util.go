@@ -1,4 +1,6 @@
-// Package blink1 provides a low-level and high-level interface to the blink(1) USB RGB LED notification light.
+// Package blink1 facilitates interaction with the blink(1) mk2 USB RGB LED notification light through both a low-level and high-level interface.
+// The low-level interface, embodied in the Device type, provides direct access to the device by offering a range of HID command APIs.
+// Conversely, the high-level interface, represented by the Controller type, simplifies device access by providing a user-friendly API suited for task execution.
 package blink1
 
 import (
@@ -11,17 +13,16 @@ import (
 const (
 	b1VendorID  = 0x27B8
 	b1ProductID = 0x01ED
-	cmdBufSize  = 9                 // for mk1&mk2
-	cmdBuf3Size = 61                // for mk3+
-	reportID    = byte(0x01)        // for normal cmd
-	report3ID   = byte(0x02)        // for mk3+
-	maxPattern  = uint(12)          // for mk1
-	maxPattern2 = uint(32)          // for mk2+
-	maxFadeMsec = uint(0xffff * 10) // 10 min 55 sec 350 msec
-	maxRepeat   = uint(0xff)        // 255
-
-	minTimeout  = 10 * time.Millisecond // minimum timeout, otherwise the device will treat it as no timeout
-	opsInterval = 20 * time.Millisecond // interval between operations
+	cmdBufSize  = 9                     // for mk1&mk2
+	cmdBuf3Size = 61                    // for mk3+
+	reportID    = byte(0x01)            // for normal cmd
+	report3ID   = byte(0x02)            // for mk3+
+	maxPattern  = uint(12)              // for mk1
+	maxPattern2 = uint(32)              // for mk2+
+	maxFadeMsec = uint(0xffff * 10)     // 10 min 55 sec 350 msec
+	maxRepeat   = uint(0xff)            // 255
+	minTimeDur  = 10 * time.Millisecond // the minimum duration for time intervals, any duration shorter than this will be interpreted by the device as having no specified time interval
+	opsInterval = 20 * time.Millisecond // the required interval between consecutive operations to avoid errors from the device
 )
 
 var (
@@ -97,25 +98,17 @@ func convDurationToActual(dur time.Duration) time.Duration {
 	if ms > maxFadeMsec {
 		return time.Duration(maxFadeMsec) * time.Millisecond
 	}
-	return dur.Truncate(minTimeout)
+	return dur.Truncate(minTimeDur)
 }
 
 // convDurationToFadeMs converts time.Duration to fadetimeMillis in Big-Endian.
 func convDurationToFadeMs(dur time.Duration) (th, tl uint8) {
 	return convDurMsToFadeMs(uint(dur.Milliseconds()))
-	// fadeMs := uint(dur.Milliseconds())
-	// if fadeMs > maxFadeMsec {
-	// 	fadeMs = maxFadeMsec
-	// }
-	// fadeMs /= 10
-	// return uint8(fadeMs >> 8), uint8(fadeMs & 0xff)
 }
 
 // convFadeMsToDuration converts Big-Endian fadetimeMillis to time.Duration.
 func convFadeMsToDuration(th, tl uint8) time.Duration {
 	return time.Duration(convFadeMsToDurMs(th, tl)) * time.Millisecond
-	// fadeMs := (int(th) << 8) | int(tl)
-	// return time.Duration(fadeMs*10) * time.Millisecond
 }
 
 // convDurMsToFadeMs converts milliseconds to fadetimeMillis in Big-Endian.

@@ -14,7 +14,7 @@ type Controller struct {
 	quitCh chan struct{}
 }
 
-// OpenController opens a blink(1) device which is connected to the system.
+// OpenController opens a blink(1) controller for device which is connected to the system.
 func OpenController(info *hid.DeviceInfo) (*Controller, error) {
 	dev, err := OpenDevice(info)
 	if err != nil {

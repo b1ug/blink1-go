@@ -1,11 +1,17 @@
 package blink1
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	hid "github.com/b1ug/gid"
+)
+
+var (
+	errNilDeviceInfo = errors.New("b1: nil device info")
+	errNotBlink1     = errors.New("b1: device is not blink(1)")
 )
 
 // Device represents a blink(1) device and provides low-level APIs using HID commands for direct control.
@@ -25,10 +31,10 @@ type Device struct {
 func OpenDevice(info *hid.DeviceInfo) (*Device, error) {
 	// verify device if it is blink(1)
 	if info == nil {
-		return nil, fmt.Errorf("nil device info")
+		return nil, errNilDeviceInfo
 	}
 	if info.VendorID != b1VendorID || info.ProductID != b1ProductID {
-		return nil, fmt.Errorf("device is not blink(1)")
+		return nil, errNotBlink1
 	}
 
 	// open device

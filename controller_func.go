@@ -272,7 +272,7 @@ func (c *Controller) StartManualTickle(posStart, posEnd uint, timeout time.Durat
 	if !c.isPosRangeValid(posStart, posEnd) {
 		return nil, errInvalidPosition
 	}
-	if timeout < minTimeout {
+	if timeout < minTimeDur {
 		return nil, errInvalidTimeout
 	}
 
