@@ -42,11 +42,6 @@ func getMaxPattern(gen uint16) uint {
 	return maxPattern
 }
 
-// convHSBToColor converts HSB to color.Color. The hue is in degrees (0-360), saturation and brightness/value are percent in the range [0, 100].
-func convHSBToColor(h, s, v float64) color.Color {
-	return convRGBToColor(convHSBToRGB(h, s, v))
-}
-
 // clampFloat64 clamps the specified value to the range [min, max].
 func clampFloat64(val, min, max float64) float64 {
 	if val < min {
@@ -56,6 +51,11 @@ func clampFloat64(val, min, max float64) float64 {
 		return max
 	}
 	return val
+}
+
+// convHSBToColor converts HSB to color.Color. The hue is in degrees (0-360), saturation and brightness/value are percent in the range [0, 100].
+func convHSBToColor(h, s, v float64) color.Color {
+	return convRGBToColor(convHSBToRGB(h, s, v))
 }
 
 // convHSBToRGB converts HSB to 8-bit RGB values.
