@@ -1,6 +1,7 @@
 package blink1
 
 import (
+	"sort"
 	"sync"
 
 	hid "github.com/b1ug/gid"
@@ -61,7 +62,7 @@ func OpenNextController() (*Controller, error) {
 	return OpenController(di)
 }
 
-// ListDeviceInfo returns all HID device info of all blink(1) devices which are connected to the system.
+// ListDeviceInfo returns all HID device info of all blink(1) devices which are connected to the system. The returned slice is sorted by serial number.
 func ListDeviceInfo() []*hid.DeviceInfo {
 	var infos []*hid.DeviceInfo
 	for di := range hid.Devices() {
@@ -69,5 +70,8 @@ func ListDeviceInfo() []*hid.DeviceInfo {
 			infos = append(infos, di)
 		}
 	}
+	sort.SliceStable(infos, func(i, j int) bool {
+		return infos[i].SerialNumber < infos[j].SerialNumber
+	})
 	return infos
 }

@@ -23,6 +23,11 @@ func OpenController(info *hid.DeviceInfo) (*Controller, error) {
 	return &Controller{dev: dev}, nil
 }
 
+// NewController creates a blink(1) controller for existing device instance.
+func NewController(dev *Device) *Controller {
+	return &Controller{dev: dev}
+}
+
 func (c *Controller) String() string {
 	return fmt.Sprintf("🎮(ctrl=%q gen=%d sn=%s)", c.dev.pn, c.dev.gen, c.dev.sn)
 }
