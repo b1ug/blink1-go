@@ -49,13 +49,14 @@ func FindNextDeviceInfo() (di *hid.DeviceInfo, err error) {
 	devInfoMu.Lock()
 	defer devInfoMu.Unlock()
 
-	// init or reset
-	if len(devInfoList) == 0 {
+	// nil list: need init or reset
+	if devInfoList == nil {
 		devInfoList = ListDeviceInfo()
 	}
 
-	// loop until found or end
+	// empty list: last device already returned
 	if len(devInfoList) == 0 {
+		devInfoList = nil
 		return nil, errDeviceNotFound
 	}
 	di = devInfoList[0]
