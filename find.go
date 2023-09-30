@@ -29,8 +29,14 @@ func ListDeviceInfo() []*hid.DeviceInfo {
 // FindDeviceInfoBySerialNumber finds a connected blink(1) device with serial number and returns its HID device info.
 func FindDeviceInfoBySerialNumber(sn string) (*hid.DeviceInfo, error) {
 	// enumerate
-	for di := range hid.Devices() {
+	devCh := hid.Devices()
+	for di := range devCh {
 		if IsBlink1Device(di) && di.SerialNumber == sn {
+			go func() {
+				// drain the channel
+				for range devCh {
+				}
+			}()
 			return di, nil
 		}
 	}
