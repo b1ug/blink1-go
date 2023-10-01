@@ -54,6 +54,8 @@ var (
 	ColorSilver = color.RGBA{R: 0xC0, G: 0xC0, B: 0xC0, A: 0xFF}
 	// ColorTeal is a predefined color, which is a dark cyan color, having the RGB values #008080
 	ColorTeal = color.RGBA{R: 0x00, G: 0x80, B: 0x80, A: 0xFF}
+	// ColorViolet is a predefined color, which is a mix of blue and red, having the RGB values #8000FF
+	ColorViolet = color.RGBA{R: 0x80, G: 0x00, B: 0xFF, A: 0xFF}
 	// ColorWhite is a predefined color, which reflects all visible wavelengths of light, having the RGB values #FFFFFF
 	ColorWhite = color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}
 	// ColorYellow is a predefined color, which is one of the primary subtractive colors, having the RGB values #FFFF00

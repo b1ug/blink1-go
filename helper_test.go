@@ -23,8 +23,9 @@ func TestHSBToRGB(t *testing.T) {
 		{"Yellow", hsb{60, 100, 100}, rgb{255, 255, 0}},
 		{"Cyan", hsb{180, 100, 100}, rgb{0, 255, 255}},
 		{"Magenta", hsb{300, 100, 100}, rgb{255, 0, 255}},
-		{"Grey", hsb{0, 0, 50}, rgb{127, 127, 127}},
-		{"No Saturation", hsb{270, 0, 50}, rgb{127, 127, 127}},
+		{"Grey", hsb{0, 0, 50}, rgb{128, 128, 128}},
+		{"Violet", hsb{270, 100, 100}, rgb{128, 0, 255}},
+		{"No Saturation", hsb{270, 0, 50}, rgb{128, 128, 128}},
 	}
 
 	for _, tc := range tests {

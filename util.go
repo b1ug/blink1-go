@@ -73,19 +73,26 @@ func convHSBToRGB(h, s, v float64) (r, g, b uint8) {
 	q := v * (1 - s*f)
 	t := v * (1 - s*(1-f))
 
+	rc := func(n float64) uint8 {
+		if n < 0 {
+			return uint8(int(n - 0.5))
+		}
+		return uint8(int(n + 0.5))
+	}
+
 	switch int(i) % 6 {
 	case 0:
-		r, g, b = uint8(v*255), uint8(t*255), uint8(p*255)
+		r, g, b = rc(v*255), rc(t*255), rc(p*255)
 	case 1:
-		r, g, b = uint8(q*255), uint8(v*255), uint8(p*255)
+		r, g, b = rc(q*255), rc(v*255), rc(p*255)
 	case 2:
-		r, g, b = uint8(p*255), uint8(v*255), uint8(t*255)
+		r, g, b = rc(p*255), rc(v*255), rc(t*255)
 	case 3:
-		r, g, b = uint8(p*255), uint8(q*255), uint8(v*255)
+		r, g, b = rc(p*255), rc(q*255), rc(v*255)
 	case 4:
-		r, g, b = uint8(t*255), uint8(p*255), uint8(v*255)
+		r, g, b = rc(t*255), rc(p*255), rc(v*255)
 	default: // case 5:
-		r, g, b = uint8(v*255), uint8(p*255), uint8(q*255)
+		r, g, b = rc(v*255), rc(p*255), rc(q*255)
 	}
 	return
 }
