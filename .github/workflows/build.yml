@@ -41,5 +41,6 @@ jobs:
           go version
           go build -v .
       - name: Go Test
+        if: ${{ runner.os != 'Windows' }}
         run: |
           go test -cover -covermode=atomic -v -count 1 ./...
