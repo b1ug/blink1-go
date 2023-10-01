@@ -14,12 +14,7 @@ var (
 
 // ListDeviceInfo returns all HID device info of all blink(1) devices which are connected to the system. The returned slice is sorted by serial number.
 func ListDeviceInfo() []*hid.DeviceInfo {
-	var infos []*hid.DeviceInfo
-	for di := range hid.Devices() {
-		if IsBlink1Device(di) {
-			infos = append(infos, di)
-		}
-	}
+	infos := hid.ListAllDevices(IsBlink1Device)
 	sort.SliceStable(infos, func(i, j int) bool {
 		return infos[i].SerialNumber < infos[j].SerialNumber
 	})
@@ -28,20 +23,14 @@ func ListDeviceInfo() []*hid.DeviceInfo {
 
 // FindDeviceInfoBySerialNumber finds a connected blink(1) device with serial number and returns its HID device info.
 func FindDeviceInfoBySerialNumber(sn string) (*hid.DeviceInfo, error) {
-	// enumerate
-	devCh := hid.Devices()
-	for di := range devCh {
-		if IsBlink1Device(di) && di.SerialNumber == sn {
-			go func() {
-				// drain the channel
-				for range devCh {
-				}
-			}()
-			return di, nil
-		}
-	}
+	dev := hid.ListFirstDevice(func(di *hid.DeviceInfo) bool {
+		return IsBlink1Device(di) && di.SerialNumber == sn
+	})
 	// not found
-	return nil, errDeviceNotFound
+	if dev == nil {
+		return nil, errDeviceNotFound
+	}
+	return dev, nil
 }
 
 // FindNextDeviceInfo returns the next HID device info of a blink(1) device which is connected to the system.
