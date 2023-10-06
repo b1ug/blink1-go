@@ -1,6 +1,12 @@
-package blink1
+package blink1_test
 
-import "testing"
+import (
+	"fmt"
+	"image/color"
+	"testing"
+
+	b1 "github.com/b1ug/blink1-go"
+)
 
 func TestHSBToRGB(t *testing.T) {
 	type hsb struct {
@@ -30,10 +36,34 @@ func TestHSBToRGB(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			r, g, b := HSBToRGB(tc.hsbValue.hue, tc.hsbValue.saturation, tc.hsbValue.brightness)
+			r, g, b := b1.HSBToRGB(tc.hsbValue.hue, tc.hsbValue.saturation, tc.hsbValue.brightness)
 			if r != tc.rgbValue.r || g != tc.rgbValue.g || b != tc.rgbValue.b {
 				t.Errorf("Expected: %v, got: R:%v, G:%v, B:%v", tc.rgbValue, r, g, b)
 			}
 		})
+	}
+}
+
+func TestIsRunningOnSupportedOS(t *testing.T) {
+	want := true
+	if got := b1.IsRunningOnSupportedOS(); got != want {
+		t.Errorf("IsRunningOnSupportedOS() = %v, want %v", got, want)
+	}
+}
+
+func TestRandomColor(t *testing.T) {
+	times := 100
+	colors := make([]color.Color, times)
+	for i := 0; i < times; i++ {
+		colors[i] = b1.RandomColor()
+	}
+	counts := make(map[string]int)
+	for _, c := range colors {
+		r, g, b, _ := c.RGBA()
+		s := fmt.Sprintf("#%02X%02X%02X", r>>8, g>>8, b>>8)
+		counts[s]++
+	}
+	if lc := len(counts); lc <= int(float64(times)*0.9) {
+		t.Errorf("RandomColor(*) = %v, want different colors", lc)
 	}
 }
