@@ -131,29 +131,50 @@ func (c *Controller) PlayPattern(pt Pattern) error {
 		pt.EndPosition = getMaxPattern(c.dev.gen) - 1
 	}
 
-	// write pattern if needed
-	if sc := len(pt.States); sc > 0 { // sc for state counter
-		pc := 0 // pc for position counter
-		for pos := pt.StartPosition; pos <= pt.EndPosition; pos++ {
-			// convert state with degamma and set as pattern
-			st := convLightState(pt.States[pc])
-			st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
-			if err := c.dev.SetPatternLine(pos, st); err != nil {
-				return fmt.Errorf("b1: failed to set pattern line %d: %w", pos, err)
-			}
-
-			// quit if all left states are filled
-			if pc++; pc >= sc {
-				break
-			}
-
-			// sleep for a little while to avoid hardware errors
-			time.Sleep(opsInterval)
-		}
+	// load pattern to RAM
+	if err := c.LoadPattern(pt.StartPosition, pt.EndPosition, pt.States); err != nil {
+		return err
 	}
 
 	// play pattern
 	return c.dev.PlayLoop(true, pt.StartPosition, pt.EndPosition, pt.RepeatTimes)
+}
+
+// LoadPattern loads the given pattern to the device's RAM.
+func (c *Controller) LoadPattern(posStart, posEnd uint, states []LightState) error {
+	sc := len(states) // sc for state counter
+	if sc == 0 {
+		// no states, just do nothing
+		return nil
+	}
+	if !c.isPosRangeValid(posStart, posEnd) {
+		// ensure range is valid
+		return errInvalidPosition
+	}
+	if posEnd == 0 {
+		// set posEnd to patt_max-1 if posEnd == 0
+		posEnd = getMaxPattern(c.dev.gen) - 1
+	}
+
+	// set patterns
+	pc := 0 // pc for position counter
+	for pos := posStart; pos <= posEnd; pos++ {
+		// convert state with degamma and set as pattern
+		st := convLightState(states[pc])
+		st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
+		if err := c.dev.SetPatternLine(pos, st); err != nil {
+			return fmt.Errorf("b1: failed to set pattern line %d: %w", pos, err)
+		}
+
+		// quit if all left states are filled
+		if pc++; pc >= sc {
+			break
+		}
+
+		// sleep for a little while to avoid hardware errors
+		time.Sleep(opsInterval)
+	}
+	return nil
 }
 
 // ReadPattern reads the current pattern in the device's RAM.

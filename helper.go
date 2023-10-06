@@ -60,7 +60,15 @@ var (
 	ColorWhite = color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}
 	// ColorYellow is a predefined color, which is one of the primary subtractive colors, having the RGB values #FFFF00
 	ColorYellow = color.RGBA{R: 0xFF, G: 0xFF, B: 0x00, A: 0xFF}
+
+	// RainbowColors is a predefined color palette, which contains the 7 colors of the rainbow.
+	RainbowColors = []color.Color{ColorRed, ColorOrange, ColorYellow, ColorGreen, ColorCyan, ColorBlue, ColorViolet}
 )
+
+// IsRunningOnSupportedOS returns true if the current OS is supported by underlying HID library.
+func IsRunningOnSupportedOS() bool {
+	return hid.Supported()
+}
 
 // IsBlink1Device returns true if the device info is about a blink(1) device.
 func IsBlink1Device(di *hid.DeviceInfo) bool {
@@ -71,6 +79,23 @@ func IsBlink1Device(di *hid.DeviceInfo) bool {
 		return true
 	}
 	return false
+}
+
+// RandomColor returns a bright random color.
+func RandomColor() color.Color {
+	// helper function to get a random float64
+	rand := func(mul float64) float64 {
+		f, _ := getRandomFloat(1 << 16)
+		return f * mul
+	}
+	// hue between 0 and 360 to get a full range of colors
+	hue := rand(360)
+	// saturation between 50 and 100 to ensure a bright color
+	saturation := 50 + rand(50)
+	// max brightness for a bright color
+	brightness := 100.
+	// convert to RGB and return
+	return convRGBToColor(convHSBToRGB(hue, saturation, brightness))
 }
 
 // HSBToRGB converts HSB to 8-bit RGB values.
