@@ -80,13 +80,18 @@ func IsBlink1Device(di *hid.DeviceInfo) bool {
 
 // RandomColor returns a bright random color.
 func RandomColor() color.Color {
+	// helper function to get a random float64
 	rand := func(mul float64) float64 {
 		f, _ := getRandomFloat(1 << 16)
 		return f * mul
 	}
+	// hue between 0 and 360 to get a full range of colors
 	hue := rand(360)
-	saturation := 50 + rand(50) // saturation between 50 and 100 to ensure a bright color
-	brightness := 100.          // max brightness for a bright color
+	// saturation between 50 and 100 to ensure a bright color
+	saturation := 50 + rand(50)
+	// max brightness for a bright color
+	brightness := 100.
+	// convert to RGB and return
 	return convRGBToColor(convHSBToRGB(hue, saturation, brightness))
 }
 
