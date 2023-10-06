@@ -6,9 +6,12 @@ package blink1
 // methods in this file primarily serve as internal helper functions
 
 import (
+	"crypto/rand"
+	"errors"
 	"fmt"
 	"image/color"
 	"math"
+	"math/big"
 	"time"
 )
 
@@ -51,6 +54,19 @@ func clampFloat64(val, min, max float64) float64 {
 		return max
 	}
 	return val
+}
+
+// getRandomFloat returns a random float64 in the range [0, 1) with the specified precision.
+func getRandomFloat(prec int64) (n float64, err error) {
+	if prec <= 0 {
+		return 0, errors.New(`prec must be > 0`)
+	}
+	maxBig := new(big.Int).SetUint64(uint64(prec))
+	nBig, err := rand.Int(rand.Reader, maxBig)
+	if err != nil {
+		return 0, err
+	}
+	return float64(nBig.Int64()) / float64(prec), nil
 }
 
 // convHSBToColor converts HSB to color.Color. The hue is in degrees (0-360), saturation and brightness/value are percent in the range [0, 100].
