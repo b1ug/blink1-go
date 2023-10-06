@@ -60,6 +60,9 @@ var (
 	ColorWhite = color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}
 	// ColorYellow is a predefined color, which is one of the primary subtractive colors, having the RGB values #FFFF00
 	ColorYellow = color.RGBA{R: 0xFF, G: 0xFF, B: 0x00, A: 0xFF}
+
+	// RainbowColors is a predefined color palette, which contains the 7 colors of the rainbow.
+	RainbowColors = []color.Color{ColorRed, ColorOrange, ColorYellow, ColorGreen, ColorCyan, ColorBlue, ColorViolet}
 )
 
 // IsRunningOnSupportedOS returns true if the current OS is supported by underlying HID library.
