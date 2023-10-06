@@ -62,6 +62,11 @@ var (
 	ColorYellow = color.RGBA{R: 0xFF, G: 0xFF, B: 0x00, A: 0xFF}
 )
 
+// IsRunningOnSupportedOS returns true if the current OS is supported by underlying HID library.
+func IsRunningOnSupportedOS() bool {
+	return hid.Supported()
+}
+
 // IsBlink1Device returns true if the device info is about a blink(1) device.
 func IsBlink1Device(di *hid.DeviceInfo) bool {
 	if di == nil {
