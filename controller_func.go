@@ -156,7 +156,7 @@ func (c *Controller) LoadPattern(posStart, posEnd uint, states []LightState) err
 		posEnd = getMaxPattern(c.dev.gen) - 1
 	}
 
-	// write pattern
+	// set patterns
 	pc := 0 // pc for position counter
 	for pos := posStart; pos <= posEnd; pos++ {
 		// convert state with degamma and set as pattern
