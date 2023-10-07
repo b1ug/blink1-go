@@ -306,8 +306,28 @@ func (c *Controller) StopAutoTickle() {
 	}
 }
 
+// SimpleTickle sets the device to tickle once.
+// The timeout should be at least 10ms, or it will be ignored by the firmware. An error will be returned for this case.
+// If keepOld is true, the current pattern will be kept playing, otherwise it will be stopped.
+func (c *Controller) SimpleTickle(posStart, posEnd uint, timeout time.Duration, keepOld bool) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// ensure start < end and end < max
+	if !c.isPosRangeValid(posStart, posEnd) {
+		return errInvalidPosition
+	}
+	if timeout < minTimeDur {
+		return errInvalidTimeout
+	}
+	timeoutMsec := uint(timeout.Milliseconds())
+
+	// tickle once
+	return c.dev.SetTickleMode(true, keepOld, posStart, posEnd, timeoutMsec)
+}
+
 // StartManualTickle sets the device to tickle manually.
-// The timeout should be at least 10ms, or it will be ignored by the firmware.
+// The timeout should be at least 10ms, or it will be ignored by the firmware. An error will be returned for this case.
 // Signals should be sent to the returned channel to tickle before the timeout, otherwise the given pattern will be played.
 // If keepOld is true, the current pattern will be kept playing, otherwise it will be stopped.
 //
