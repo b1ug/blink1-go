@@ -27,7 +27,7 @@ const (
 	maxFadeMsec = uint(0xffff * 10)     // 10 min 55 sec 350 msec
 	maxRepeat   = uint(0xff)            // 255
 	minTimeDur  = 10 * time.Millisecond // the minimum duration for time intervals, any duration shorter than this will be interpreted by the device as having no specified time interval
-	opsInterval = 20 * time.Millisecond // the required interval between consecutive operations to avoid errors from the device
+	opsInterval = 30 * time.Millisecond // the required interval between consecutive operations to avoid errors from the device
 	opsTryTimes = 3                     // the number of times to attempt an operation before giving up
 )
 
