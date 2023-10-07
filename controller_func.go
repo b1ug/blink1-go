@@ -103,7 +103,11 @@ func (c *Controller) PlayPatternBlocking(pt Pattern) error {
 		// read pattern to get total duration
 		var totalDur time.Duration
 		for i := startPos; i <= endPos; i++ {
-			if st, err := c.dev.ReadPatternLine(i); err == nil {
+			var st DeviceLightState
+			if err := retryWorkload(func() (ie error) {
+				st, ie = c.dev.ReadPatternLine(i)
+				return ie
+			}); err == nil {
 				totalDur += time.Duration(st.FadeTimeMsec) * time.Millisecond
 			} else {
 				return fmt.Errorf("b1: failed to read pattern line %d: %w", i, err)
@@ -162,7 +166,11 @@ func (c *Controller) LoadPattern(posStart, posEnd uint, states []LightState) err
 		// convert state with degamma and set as pattern
 		st := convLightState(states[pc])
 		st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
-		if err := c.dev.SetPatternLine(pos, st); err != nil {
+
+		// operate on device
+		if err := retryWorkload(func() error {
+			return c.dev.SetPatternLine(pos, st)
+		}); err != nil {
 			return fmt.Errorf("b1: failed to set pattern line %d: %w", pos, err)
 		}
 
@@ -184,8 +192,11 @@ func (c *Controller) ReadPattern() ([]LightState, error) {
 
 	var ls []LightState
 	for pos, posMax := uint(0), getMaxPattern(c.dev.gen); pos < posMax; pos++ {
-		st, err := c.dev.ReadPatternLine(pos)
-		if err != nil {
+		var st DeviceLightState
+		if err := retryWorkload(func() (ie error) {
+			st, ie = c.dev.ReadPatternLine(pos)
+			return ie
+		}); err != nil {
 			return nil, fmt.Errorf("b1: failed to read pattern line %d: %w", pos, err)
 		}
 		ls = append(ls, convDeviceLightState(st))
@@ -211,6 +222,24 @@ func (c *Controller) IsPatternPlaying() (bool, error) {
 		return false, fmt.Errorf("b1: failed to read play state: %w", err)
 	}
 	return st.IsPlaying, nil
+}
+
+// GetPatternState returns the current state of the pattern that is playing.
+func (c *Controller) GetPatternState() (PatternState, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	st, err := c.dev.ReadPlaystate()
+	if err != nil {
+		return PatternState{}, err
+	}
+	return PatternState{
+		IsPlaying:       st.IsPlaying,
+		CurrentPosition: st.CurrentPos,
+		StartPosition:   st.LoopStartPos,
+		EndPosition:     st.LoopEndPos,
+		RepeatTimes:     st.RepeatTimes,
+	}, nil
 }
 
 // StopPlaying stops playing the pattern and turns off all the LEDs.
@@ -277,8 +306,28 @@ func (c *Controller) StopAutoTickle() {
 	}
 }
 
+// SimpleTickle sets the device to tickle once.
+// The timeout should be at least 10ms, or it will be ignored by the firmware. An error will be returned for this case.
+// If keepOld is true, the current pattern will be kept playing, otherwise it will be stopped.
+func (c *Controller) SimpleTickle(posStart, posEnd uint, timeout time.Duration, keepOld bool) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// ensure start < end and end < max
+	if !c.isPosRangeValid(posStart, posEnd) {
+		return errInvalidPosition
+	}
+	if timeout < minTimeDur {
+		return errInvalidTimeout
+	}
+	timeoutMsec := uint(timeout.Milliseconds())
+
+	// tickle once
+	return c.dev.SetTickleMode(true, keepOld, posStart, posEnd, timeoutMsec)
+}
+
 // StartManualTickle sets the device to tickle manually.
-// The timeout should be at least 10ms, or it will be ignored by the firmware.
+// The timeout should be at least 10ms, or it will be ignored by the firmware. An error will be returned for this case.
 // Signals should be sent to the returned channel to tickle before the timeout, otherwise the given pattern will be played.
 // If keepOld is true, the current pattern will be kept playing, otherwise it will be stopped.
 //
