@@ -103,7 +103,11 @@ func (c *Controller) PlayPatternBlocking(pt Pattern) error {
 		// read pattern to get total duration
 		var totalDur time.Duration
 		for i := startPos; i <= endPos; i++ {
-			if st, err := c.dev.ReadPatternLine(i); err == nil {
+			var st DeviceLightState
+			if err := retryWorkload(func() (ie error) {
+				st, ie = c.dev.ReadPatternLine(i)
+				return ie
+			}); err == nil {
 				totalDur += time.Duration(st.FadeTimeMsec) * time.Millisecond
 			} else {
 				return fmt.Errorf("b1: failed to read pattern line %d: %w", i, err)
@@ -162,7 +166,11 @@ func (c *Controller) LoadPattern(posStart, posEnd uint, states []LightState) err
 		// convert state with degamma and set as pattern
 		st := convLightState(states[pc])
 		st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
-		if err := c.dev.SetPatternLine(pos, st); err != nil {
+
+		// operate on device
+		if err := retryWorkload(func() error {
+			return c.dev.SetPatternLine(pos, st)
+		}); err != nil {
 			return fmt.Errorf("b1: failed to set pattern line %d: %w", pos, err)
 		}
 
@@ -184,8 +192,11 @@ func (c *Controller) ReadPattern() ([]LightState, error) {
 
 	var ls []LightState
 	for pos, posMax := uint(0), getMaxPattern(c.dev.gen); pos < posMax; pos++ {
-		st, err := c.dev.ReadPatternLine(pos)
-		if err != nil {
+		var st DeviceLightState
+		if err := retryWorkload(func() (ie error) {
+			st, ie = c.dev.ReadPatternLine(pos)
+			return ie
+		}); err != nil {
 			return nil, fmt.Errorf("b1: failed to read pattern line %d: %w", pos, err)
 		}
 		ls = append(ls, convDeviceLightState(st))

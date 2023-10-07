@@ -28,6 +28,7 @@ const (
 	maxRepeat   = uint(0xff)            // 255
 	minTimeDur  = 10 * time.Millisecond // the minimum duration for time intervals, any duration shorter than this will be interpreted by the device as having no specified time interval
 	opsInterval = 20 * time.Millisecond // the required interval between consecutive operations to avoid errors from the device
+	opsTryTimes = 3                     // the number of times to retry an operation before giving up
 )
 
 var (
@@ -211,6 +212,20 @@ func convLightState(st LightState) DeviceLightState {
 		LED:          st.LED,
 		FadeTimeMsec: uint(st.FadeTime.Milliseconds()),
 	}
+}
+
+// retryWorkload retries the specified workload until it succeeds or the retry limit is reached.
+func retryWorkload(workload func() error) error {
+	var err error
+	for i := 0; i < opsTryTimes; i++ {
+		if err = workload(); err == nil {
+			// success
+			return nil
+		}
+		// wait before retry, cool down time
+		time.Sleep(opsInterval)
+	}
+	return err
 }
 
 // Migrated from https://github.com/todbot/blink1-tool/blob/92661e6d731b46d4bf82e2506c105c5fe433b57d/blink1-lib.c#L676-L700
