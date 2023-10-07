@@ -213,6 +213,24 @@ func (c *Controller) IsPatternPlaying() (bool, error) {
 	return st.IsPlaying, nil
 }
 
+// GetPatternState returns the current state of the pattern that is playing.
+func (c *Controller) GetPatternState() (PatternState, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	st, err := c.dev.ReadPlaystate()
+	if err != nil {
+		return PatternState{}, err
+	}
+	return PatternState{
+		IsPlaying:       st.IsPlaying,
+		CurrentPosition: st.CurrentPos,
+		StartPosition:   st.LoopStartPos,
+		EndPosition:     st.LoopEndPos,
+		RepeatTimes:     st.RepeatTimes,
+	}, nil
+}
+
 // StopPlaying stops playing the pattern and turns off all the LEDs.
 // It will stop the current playing patterns, whether it is started by StartPlaying() or StartAuto/ManualTickle(), and turn off all the LEDs.
 // If the pattern is not playing, it only turns off all the LEDs.
