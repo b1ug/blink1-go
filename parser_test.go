@@ -375,12 +375,42 @@ func TestParseStateQuery(t *testing.T) {
 			want:    blink1.LightState{Color: color.RGBA{R: 0xff, G: 0xa5, B: 0x0, A: 0xff}, LED: blink1.LED2, FadeTime: 3000 * time.Millisecond},
 			wantErr: false,
 		},
+		{
+			query:   `led=1 color=yellow time=500ms`,
+			want:    blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LED1, FadeTime: 500 * time.Millisecond},
+			wantErr: false,
+		},
+		{
+			query:   `led=1 color=yellow now`,
+			want:    blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LED1, FadeTime: 0},
+			wantErr: false,
+		},
+		{
+			query:   `led=1 color=yellow`,
+			wantErr: true,
+		},
+		{
+			query:   `color=yellow now`,
+			wantErr: true,
+		},
+		{
+			query:   `led color=yellow time=500ms`,
+			wantErr: true,
+		},
+		{
+			query:   `all pink now`,
+			want:    blink1.LightState{Color: blink1.ColorPink, LED: blink1.LEDAll, FadeTime: 0},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.query, func(t *testing.T) {
 			got, err := blink1.ParseStateQuery(tt.query)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseStateQuery(%q) got error = %v, wantErr %v", tt.query, err, tt.wantErr)
+				return
+			}
+			if err != nil {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
