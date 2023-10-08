@@ -109,25 +109,18 @@ func ParseStateQuery(query string) (LightState, error) {
 	}
 
 	// parse each part
-	if cl, err := parseColor(q); err != nil {
+	var err error
+	if st.Color, err = parseColor(q); err != nil {
 		return st, err
-	} else {
-		st.Color = cl
+	}
+	if st.FadeTime, err = parseFadeTime(q); err != nil {
+		return st, err
+	}
+	if st.LED, err = parseLEDIndex(q); err != nil {
+		return st, err
 	}
 
-	if ft, err := parseFadeTimeMsec(q); err != nil {
-		return st, err
-	} else {
-		st.FadeTime = time.Duration(ft) * time.Millisecond
-	}
-
-	if led, err := parseLEDIndex(q); err != nil {
-		return st, err
-	} else {
-		st.LED = LEDIndex(led)
-	}
-
-	// finally
+	// all done
 	return st, nil
 }
 
@@ -184,10 +177,10 @@ func parseColor(query string) (color.Color, error) {
 	return nil, errNoColorMatch
 }
 
-func parseFadeTimeMsec(query string) (int, error) {
+func parseFadeTime(query string) (time.Duration, error) {
 	// parse
 	for mul, pat := range fadeMsecRegexPats {
-		// handle values first
+		// skip zero values first
 		if mul == 0 {
 			continue
 		}
@@ -205,30 +198,30 @@ func parseFadeTimeMsec(query string) (int, error) {
 				if err != nil {
 					return 0, err
 				}
-				return int(val * float64(mul)), nil
+				return time.Duration(val*float64(mul)) * time.Millisecond, nil
 			}
 		}
 	}
 
-	// handle zero
+	// handle zero values
 	if m := fadeMsecRegexPats[0].FindStringSubmatch(query); m != nil {
 		return 0, nil
 	}
 	return 0, errNoFadeMatch
 }
 
-func parseLEDIndex(query string) (int, error) {
+func parseLEDIndex(query string) (LEDIndex, error) {
 	// for "led *", "light *", or "led:*" or "led#"
 	for _, pat := range ledIdxRegexPats[12] {
 		m := pat.FindStringSubmatch(query)
 		if m != nil && len(m) >= 3 {
 			switch m[2] {
 			case "0", "all", "both", "zero":
-				return int(0), nil
+				return LEDAll, nil
 			case "1", "one":
-				return int(1), nil
+				return LED1, nil
 			case "2", "two":
-				return int(2), nil
+				return LED2, nil
 			}
 		}
 	}
@@ -237,7 +230,7 @@ func parseLEDIndex(query string) (int, error) {
 	for _, pat := range ledIdxRegexPats[1] {
 		m := pat.FindStringSubmatch(query)
 		if m != nil {
-			return int(1), nil
+			return LED1, nil
 		}
 	}
 
@@ -245,7 +238,7 @@ func parseLEDIndex(query string) (int, error) {
 	for _, pat := range ledIdxRegexPats[2] {
 		m := pat.FindStringSubmatch(query)
 		if m != nil {
-			return int(2), nil
+			return LED2, nil
 		}
 	}
 
@@ -253,9 +246,9 @@ func parseLEDIndex(query string) (int, error) {
 	for _, pat := range ledIdxRegexPats[0] {
 		m := pat.FindStringSubmatch(query)
 		if m != nil {
-			return int(0), nil
+			return LEDAll, nil
 		}
 	}
 
-	return int(0), errNoLEDMatch
+	return 0, errNoLEDMatch
 }
