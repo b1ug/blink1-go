@@ -91,38 +91,38 @@ func initRegex() {
 }
 
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
-// e.g. turn off all lights right now, set led 1 to color #ff00ff over 2 seconds
+// The query can contain information about the color, fade time, and LED index. e.g. turn off all lights right now, set led 1 to color #ff00ff over 2 seconds
 //
 // Color can be specified by name, hex code, or RGB/HSB values, e.g. "red", "#FF0000", "rgb(255,0,0)", "hsb(0,100,100)"
-//
 // Fade time can be specified by milliseconds, seconds, or minutes, e.g. "100ms", "1s", "1.5m", "now", "0s"
-//
 // LED index can be specified by number, name, or position, e.g. "led 1", "led 2", "top led", "second led", "led:all", "led:0"
+//
+// If the query is empty, it returns an error.
 func ParseStateQuery(query string) (LightState, error) {
 	// init regex
 	regexOnce.Do(initRegex)
 
 	// prepare
-	var st LightState
-	q := strings.TrimSpace(strings.ToLower(query))
-	if q == "" {
-		return st, errBlankQuery
+	var state LightState
+	query = strings.TrimSpace(strings.ToLower(query))
+	if query == "" {
+		return state, errBlankQuery
 	}
 
 	// parse each part
 	var err error
-	if st.Color, err = parseColor(q); err != nil {
-		return st, err
+	if state.Color, err = parseColor(query); err != nil {
+		return state, err
 	}
-	if st.FadeTime, err = parseFadeTime(q); err != nil {
-		return st, err
+	if state.FadeTime, err = parseFadeTime(query); err != nil {
+		return state, err
 	}
-	if st.LED, err = parseLEDIndex(q); err != nil {
-		return st, err
+	if state.LED, err = parseLEDIndex(query); err != nil {
+		return state, err
 	}
 
 	// all done
-	return st, nil
+	return state, nil
 }
 
 func parseColor(query string) (color.Color, error) {
