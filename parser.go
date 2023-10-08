@@ -69,10 +69,10 @@ func initRegex() {
 	colorRegexPats["hex3"] = regexp.MustCompile(`#([0-9a-f]{3})\b`)
 
 	// for fade msec
-	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right(?:\s)*now|swiftly|this(?:\s)*moment)\b`)
-	fadeMsecRegexPats[1] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)(?:\s)*(ms|millis|millisec|millisecs|msec|msecs|millisecond|milliseconds)\b`)
-	fadeMsecRegexPats[1000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)(?:\s)*s(?:ec)?(?:ond)?(?:s)?\b`)
-	fadeMsecRegexPats[60000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)(?:\s)*(m|min|mins|minute|minutes)\b`)
+	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\b\s*now|swiftly|this\b\s*moment)\b`)
+	fadeMsecRegexPats[1] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(ms|millis|millisec|millisecs|msec|msecs|millisecond|milliseconds)\b`)
+	fadeMsecRegexPats[1000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*s(?:ec)?(?:ond)?(?:s)?\b`)
+	fadeMsecRegexPats[60000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)\b`)
 
 	// for led index
 	ledIdxRegexPats[0] = []*regexp.Regexp{
@@ -91,6 +91,7 @@ func initRegex() {
 }
 
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
+// e.g. turn off all lights right now, set led 1 to color #ff00ff over 2 seconds
 //
 // Color can be specified by name, hex code, or RGB/HSB values, e.g. "red", "#FF0000", "rgb(255,0,0)", "hsb(0,100,100)"
 //
