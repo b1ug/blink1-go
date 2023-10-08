@@ -20,7 +20,7 @@ func TestParseStateQuery(t *testing.T) {
 			want:  blink1.LightState{Color: blink1.ColorBlack, LED: blink1.LEDAll, FadeTime: 0},
 		},
 		{
-			query: "set led 1 to color #ff00ff over 2 seconds",
+			query: "set led 1 to color #ff00ff over 2 sec",
 			want:  blink1.LightState{Color: blink1.ColorMagenta, LED: blink1.LED1, FadeTime: 2 * time.Second},
 		},
 		{
@@ -48,7 +48,7 @@ func TestParseStateQuery(t *testing.T) {
 			want:  blink1.LightState{Color: blink1.ColorLime, LED: blink1.LED1, FadeTime: 5000 * time.Millisecond},
 		},
 		{
-			query: "change light 1 to pink over 5.5 secs",
+			query: "change light 1 to pink over 5.5secs",
 			want:  blink1.LightState{Color: blink1.ColorPink, LED: blink1.LED1, FadeTime: 5500 * time.Millisecond},
 		},
 		{

@@ -91,13 +91,14 @@ func initRegex() {
 }
 
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
-// The query can contain information about the color, fade time, and LED index. e.g. turn off all lights right now, set led 1 to color #ff00ff over 2 seconds
+// The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec".
+// If the query is empty, it returns an error.
 //
 // Color can be specified by name, hex code, or RGB/HSB values, e.g. "red", "#FF0000", "rgb(255,0,0)", "hsb(0,100,100)"
-// Fade time can be specified by milliseconds, seconds, or minutes, e.g. "100ms", "1s", "1.5m", "now", "0s"
-// LED index can be specified by number, name, or position, e.g. "led 1", "led 2", "top led", "second led", "led:all", "led:0"
 //
-// If the query is empty, it returns an error.
+// Fade time can be specified by milliseconds, seconds, or minutes, e.g. "100ms", "1s", "1.5m", "now", "0s"
+//
+// LED index can be specified by number, name, or position, e.g. "led 1", "led 2", "top led", "second led", "led:all", "led:0"
 func ParseStateQuery(query string) (LightState, error) {
 	// init regex
 	regexOnce.Do(initRegex)

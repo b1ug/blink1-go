@@ -69,7 +69,7 @@ type Pattern struct {
 	States        []LightState // Slice of states to execute in pattern, non-empty patterns will be set to the device automatically
 }
 
-// PatternState represents a blink(1) pattern playing state for high-level APIs. TODO: Not used yet.
+// PatternState represents a blink(1) pattern playing state for high-level APIs.
 type PatternState struct {
 	IsPlaying       bool // Is playing
 	CurrentPosition uint // Current position
