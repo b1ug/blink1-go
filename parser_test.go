@@ -9,7 +9,23 @@ import (
 	"github.com/b1ug/blink1-go"
 )
 
-// func BenchmarkParseStateQuery
+func BenchmarkParseStateQuery_Simple(b *testing.B) {
+	q := `(led:2, color:pink, time:500ms)`
+	blink1.ParseStateQuery(q)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseStateQuery(q)
+	}
+}
+
+func BenchmarkParseStateQuery_Complex(b *testing.B) {
+	q := `slowly change all leds to color #add8e6 in 4.5 seconds`
+	blink1.ParseStateQuery(q)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseStateQuery(q)
+	}
+}
 
 func TestParseStateQuery(t *testing.T) {
 	tests := []struct {
