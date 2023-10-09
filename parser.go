@@ -69,7 +69,7 @@ func initRegex() {
 	colorRegexPats["hex3"] = regexp.MustCompile(`#([0-9a-f]{3})\b`)
 
 	// for fade msec
-	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(0|now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\b\s*now|swiftly|this\b\s*moment)\b`)
+	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(0|now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\b\s*now|swiftly|this\b\s*moment|no\b\s*time)\b`)
 	fadeMsecRegexPats[1] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(ms|millis|millisec|millisecs|msec|msecs|millisecond|milliseconds)\b`)
 	fadeMsecRegexPats[1000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*s(?:ec)?(?:ond)?(?:s)?\b`)
 	fadeMsecRegexPats[60000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)\b`)

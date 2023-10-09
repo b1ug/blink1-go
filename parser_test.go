@@ -9,6 +9,8 @@ import (
 	"github.com/b1ug/blink1-go"
 )
 
+// func BenchmarkParseStateQuery
+
 func TestParseStateQuery(t *testing.T) {
 	tests := []struct {
 		query   string
@@ -32,7 +34,7 @@ func TestParseStateQuery(t *testing.T) {
 			want:  blink1.LightState{Color: blink1.ColorPink, LED: blink1.LED1, FadeTime: 10 * time.Millisecond},
 		},
 		{
-			query: "all leds shift to color #ffff00 immediately",
+			query: "all leds shift to color #ffff00 in no time",
 			want:  blink1.LightState{Color: color.RGBA{R: 0xff, G: 0xff, B: 0x0, A: 0xff}, LED: blink1.LEDAll, FadeTime: 0},
 		},
 		{
