@@ -69,7 +69,7 @@ func initRegex() {
 	colorRegexPats["hex3"] = regexp.MustCompile(`#([0-9a-f]{3})\b`)
 
 	// for fade msec
-	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\b\s*now|swiftly|this\b\s*moment)\b`)
+	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(0|now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\b\s*now|swiftly|this\b\s*moment)\b`)
 	fadeMsecRegexPats[1] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(ms|millis|millisec|millisecs|msec|msecs|millisecond|milliseconds)\b`)
 	fadeMsecRegexPats[1000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*s(?:ec)?(?:ond)?(?:s)?\b`)
 	fadeMsecRegexPats[60000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)\b`)
@@ -85,8 +85,9 @@ func initRegex() {
 		regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\b\s*(led|light)\b`),
 	}
 	ledIdxRegexPats[12] = []*regexp.Regexp{
+		// TODO: merge it
 		regexp.MustCompile(`\b(led|light)[:#=\s]*([012])\b`),
-		regexp.MustCompile(`\b(led|light)[:#=\s](all|both|zero|one|two)\b`),
+		regexp.MustCompile(`\b(led|light)[:#=\s](top|bottom|btm|all|both|zero|one|two)\b`),
 	}
 }
 
@@ -220,9 +221,9 @@ func parseLEDIndex(query string) (LEDIndex, error) {
 			switch m[2] {
 			case "0", "all", "both", "zero":
 				return LEDAll, nil
-			case "1", "one":
+			case "1", "one", "top":
 				return LED1, nil
-			case "2", "two":
+			case "2", "two", "btm", "bottom":
 				return LED2, nil
 			}
 		}
