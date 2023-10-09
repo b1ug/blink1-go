@@ -75,9 +75,9 @@ func initRegex() {
 	fadeMsecRegexPats[60000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)\b`)
 
 	// for led index
-	ledIdxRegexPats[0] = regexp.MustCompile(`\b(?:all\b\s*(leds|led|light|lights)?|(?:all|both)?\b\s*(?:leds|lights)|both)\b`)
-	ledIdxRegexPats[1] = regexp.MustCompile(`\b(?:top|first|1st)\b\s*(led|light)\b`)
-	ledIdxRegexPats[2] = regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\b\s*(led|light)\b`)
+	ledIdxRegexPats[0] = regexp.MustCompile(`\b(?:all\s+(leds|led|light|lights)?|(?:all|both)?\s+(?:leds|lights)|both)\b`)
+	ledIdxRegexPats[1] = regexp.MustCompile(`\b(?:top|first|1st)\s+(led|light)\b`)
+	ledIdxRegexPats[2] = regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\s+(led|light)\b`)
 	ledIdxRegexPats[12] = regexp.MustCompile(`\b(led|light)[:#=\s]*([012]|top|bottom|btm|all|both|zero|one|two)\b`)
 }
 
