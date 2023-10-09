@@ -82,7 +82,7 @@ func initRegex() {
 		regexp.MustCompile(`\b(?:top|first|1st)\b\s*(led|light)\b`),
 	}
 	ledIdxRegexPats[2] = []*regexp.Regexp{
-		regexp.MustCompile(`\b(?:bottom|second|2nd)\b\s*(led|light)\b`),
+		regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\b\s*(led|light)\b`),
 	}
 	ledIdxRegexPats[12] = []*regexp.Regexp{
 		regexp.MustCompile(`\b(led|light)[:#=\s]*([012])\b`),
