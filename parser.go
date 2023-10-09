@@ -46,7 +46,7 @@ var (
 	regexOnce         sync.Once
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
-	ledIdxRegexPats   = make(map[int][]*regexp.Regexp)
+	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
 	errNoColorMatch = errors.New("b1: no color match")
 	errNoFadeMatch  = errors.New("b1: no fade time match")
@@ -69,35 +69,27 @@ func initRegex() {
 	colorRegexPats["hex3"] = regexp.MustCompile(`#([0-9a-f]{3})\b`)
 
 	// for fade msec
-	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\b\s*now|swiftly|this\b\s*moment)\b`)
+	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(0|now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\s+now|swiftly|this\s+moment|no\s+time)\b`)
 	fadeMsecRegexPats[1] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(ms|millis|millisec|millisecs|msec|msecs|millisecond|milliseconds)\b`)
 	fadeMsecRegexPats[1000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*s(?:ec)?(?:ond)?(?:s)?\b`)
 	fadeMsecRegexPats[60000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)\b`)
 
 	// for led index
-	ledIdxRegexPats[0] = []*regexp.Regexp{
-		regexp.MustCompile(`\b(?:all\b\s*(leds|led|light|lights)?|(?:all|both)?\b\s*(?:leds|lights)|both)\b`),
-	}
-	ledIdxRegexPats[1] = []*regexp.Regexp{
-		regexp.MustCompile(`\b(?:top|first|1st)\b\s*(led|light)\b`),
-	}
-	ledIdxRegexPats[2] = []*regexp.Regexp{
-		regexp.MustCompile(`\b(?:bottom|second|2nd)\b\s*(led|light)\b`),
-	}
-	ledIdxRegexPats[12] = []*regexp.Regexp{
-		regexp.MustCompile(`\b(led|light)[:#=\s]*([012])\b`),
-		regexp.MustCompile(`\b(led|light)[:#=\s](all|both|zero|one|two)\b`),
-	}
+	ledIdxRegexPats[0] = regexp.MustCompile(`\b(?:all\s+(leds|led|light|lights)?|(?:all|both)?\s+(?:leds|lights)|both)\b`)
+	ledIdxRegexPats[1] = regexp.MustCompile(`\b(?:top|first|1st)\s+(led|light)\b`)
+	ledIdxRegexPats[2] = regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\s+(led|light)\b`)
+	ledIdxRegexPats[12] = regexp.MustCompile(`\b(led|light)[:#=\s]*([012]|top|bottom|btm|all|both|zero|one|two)\b`)
 }
 
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
-// The query can contain information about the color, fade time, and LED index. e.g. turn off all lights right now, set led 1 to color #ff00ff over 2 seconds
+// The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec".
+// If the query is empty, it returns an error.
 //
 // Color can be specified by name, hex code, or RGB/HSB values, e.g. "red", "#FF0000", "rgb(255,0,0)", "hsb(0,100,100)"
-// Fade time can be specified by milliseconds, seconds, or minutes, e.g. "100ms", "1s", "1.5m", "now", "0s"
-// LED index can be specified by number, name, or position, e.g. "led 1", "led 2", "top led", "second led", "led:all", "led:0"
 //
-// If the query is empty, it returns an error.
+// Fade time can be specified by milliseconds, seconds, or minutes, e.g. "100ms", "1s", "1.5m", "now", "0s"
+//
+// LED index can be specified by number, name, or position, e.g. "led 1", "led 2", "top led", "second led", "led:all", "led:0"
 func ParseStateQuery(query string) (LightState, error) {
 	// init regex
 	regexOnce.Do(initRegex)
@@ -213,43 +205,32 @@ func parseFadeTime(query string) (time.Duration, error) {
 
 func parseLEDIndex(query string) (LEDIndex, error) {
 	// for "led *", "light *", or "led:*" or "led#"
-	for _, pat := range ledIdxRegexPats[12] {
-		m := pat.FindStringSubmatch(query)
-		if m != nil && len(m) >= 3 {
-			switch m[2] {
-			case "0", "all", "both", "zero":
-				return LEDAll, nil
-			case "1", "one":
-				return LED1, nil
-			case "2", "two":
-				return LED2, nil
-			}
-		}
-	}
-
-	// for 1st led
-	for _, pat := range ledIdxRegexPats[1] {
-		m := pat.FindStringSubmatch(query)
-		if m != nil {
+	if m := ledIdxRegexPats[12].FindStringSubmatch(query); m != nil && len(m) >= 3 {
+		switch m[2] {
+		case "0", "all", "both", "zero":
+			return LEDAll, nil
+		case "1", "one", "top":
 			return LED1, nil
-		}
-	}
-
-	// for 2nd led
-	for _, pat := range ledIdxRegexPats[2] {
-		m := pat.FindStringSubmatch(query)
-		if m != nil {
+		case "2", "two", "btm", "bottom":
 			return LED2, nil
 		}
 	}
 
-	// for all/both
-	for _, pat := range ledIdxRegexPats[0] {
-		m := pat.FindStringSubmatch(query)
-		if m != nil {
-			return LEDAll, nil
-		}
+	// for 1st led
+	if m := ledIdxRegexPats[1].FindStringSubmatch(query); m != nil {
+		return LED1, nil
 	}
 
+	// for 2nd led
+	if m := ledIdxRegexPats[2].FindStringSubmatch(query); m != nil {
+		return LED2, nil
+	}
+
+	// for all/both
+	if m := ledIdxRegexPats[0].FindStringSubmatch(query); m != nil {
+		return LEDAll, nil
+	}
+
+	// no match
 	return 0, errNoLEDMatch
 }

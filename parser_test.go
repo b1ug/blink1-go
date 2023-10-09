@@ -9,6 +9,24 @@ import (
 	"github.com/b1ug/blink1-go"
 )
 
+func BenchmarkParseStateQuery_Simple(b *testing.B) {
+	q := `(led:2, color:pink, time:500ms)`
+	blink1.ParseStateQuery(q)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseStateQuery(q)
+	}
+}
+
+func BenchmarkParseStateQuery_Complex(b *testing.B) {
+	q := `slowly change all leds to color #add8e6 in 4.5 seconds`
+	blink1.ParseStateQuery(q)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseStateQuery(q)
+	}
+}
+
 func TestParseStateQuery(t *testing.T) {
 	tests := []struct {
 		query   string
@@ -20,7 +38,7 @@ func TestParseStateQuery(t *testing.T) {
 			want:  blink1.LightState{Color: blink1.ColorBlack, LED: blink1.LEDAll, FadeTime: 0},
 		},
 		{
-			query: "set led 1 to color #ff00ff over 2 seconds",
+			query: "set led 1 to color #ff00ff over 2 sec",
 			want:  blink1.LightState{Color: blink1.ColorMagenta, LED: blink1.LED1, FadeTime: 2 * time.Second},
 		},
 		{
@@ -32,7 +50,7 @@ func TestParseStateQuery(t *testing.T) {
 			want:  blink1.LightState{Color: blink1.ColorPink, LED: blink1.LED1, FadeTime: 10 * time.Millisecond},
 		},
 		{
-			query: "all leds shift to color #ffff00 immediately",
+			query: "all leds shift to color #ffff00 in no time",
 			want:  blink1.LightState{Color: color.RGBA{R: 0xff, G: 0xff, B: 0x0, A: 0xff}, LED: blink1.LEDAll, FadeTime: 0},
 		},
 		{
@@ -48,7 +66,7 @@ func TestParseStateQuery(t *testing.T) {
 			want:  blink1.LightState{Color: blink1.ColorLime, LED: blink1.LED1, FadeTime: 5000 * time.Millisecond},
 		},
 		{
-			query: "change light 1 to pink over 5.5 secs",
+			query: "change light 1 to pink over 5.5secs",
 			want:  blink1.LightState{Color: blink1.ColorPink, LED: blink1.LED1, FadeTime: 5500 * time.Millisecond},
 		},
 		{
@@ -310,6 +328,30 @@ func TestParseStateQuery(t *testing.T) {
 		{
 			query: "🎨(color=#FFA500 led=2 fade=3s)",
 			want:  blink1.LightState{Color: color.RGBA{R: 0xff, G: 0xa5, B: 0x0, A: 0xff}, LED: blink1.LED2, FadeTime: 3000 * time.Millisecond},
+		},
+		{
+			query: `(led:0, color:yellow, time:500ms)`,
+			want:  blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LEDAll, FadeTime: 500 * time.Millisecond},
+		},
+		{
+			query: `(led:2, color:#00ff00, time:2s)`,
+			want:  blink1.LightState{Color: blink1.ColorGreen, LED: blink1.LED2, FadeTime: 2000 * time.Millisecond},
+		},
+		{
+			query: `(led=all, color=#00ff00, time=1m)`,
+			want:  blink1.LightState{Color: blink1.ColorGreen, LED: blink1.LEDAll, FadeTime: 1 * time.Minute},
+		},
+		{
+			query: `(led:top, color=#faf, time=0)`,
+			want:  blink1.LightState{Color: color.RGBA{R: 0xff, G: 0xaa, B: 0xff, A: 0xff}, LED: blink1.LED1, FadeTime: 0},
+		},
+		{
+			query: `(led:btm, color=#abc, time: 0)`,
+			want:  blink1.LightState{Color: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff}, LED: blink1.LED2, FadeTime: 0},
+		},
+		{
+			query: `(led:1, color=#abcdef, fade=1s)`,
+			want:  blink1.LightState{Color: color.RGBA{R: 0xab, G: 0xcd, B: 0xef, A: 0xff}, LED: blink1.LED1, FadeTime: 1 * time.Second},
 		},
 		{
 			query: `all pink now`,
