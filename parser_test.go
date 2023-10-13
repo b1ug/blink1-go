@@ -366,6 +366,10 @@ func TestParseStateQuery(t *testing.T) {
 			want:  blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LED1, FadeTime: 0},
 		},
 		{
+			query: `led=1 color=yellow now // led=2 color=blue time=500ms`,
+			want:  blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LED1, FadeTime: 0},
+		},
+		{
 			query:   `led=1 color=yellow`,
 			wantErr: true,
 		},

@@ -44,6 +44,7 @@ var colorMap = map[string]color.Color{
 
 var (
 	regexOnce         sync.Once
+	commentRegexPat   *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
@@ -55,6 +56,9 @@ var (
 )
 
 func initRegex() {
+	// for comments
+	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
+
 	// for colors
 	colorWords := make([]string, 0, len(colorMap))
 	for k := range colorMap {
@@ -100,6 +104,9 @@ func ParseStateQuery(query string) (LightState, error) {
 	if query == "" {
 		return state, errBlankQuery
 	}
+
+	// remove comments
+	query = commentRegexPat.ReplaceAllString(query, "")
 
 	// parse each part
 	var err error
