@@ -3,6 +3,7 @@ package blink1
 import (
 	"fmt"
 	"image/color"
+	"strconv"
 	"time"
 )
 
@@ -26,6 +27,18 @@ func (l LEDIndex) ToByte() byte {
 	return byte(l)
 }
 
+// String returns a string representation of LEDIndex.
+func (l LEDIndex) String() string {
+	switch l {
+	case LED1:
+		return "LED 1"
+	case LED2:
+		return "LED 2"
+	default:
+		return "All LED"
+	}
+}
+
 // DevicePatternState is a blink(1) pattern playing state for low-level APIs.
 type DevicePatternState struct {
 	IsPlaying    bool // Is playing
@@ -37,6 +50,19 @@ type DevicePatternState struct {
 
 func (st DevicePatternState) String() string {
 	return fmt.Sprintf("%s{playing=%t cur=%d loop=[%d,%d) left=%d}", convPlayingToEmoji(st.IsPlaying), st.IsPlaying, st.CurrentPos, st.LoopStartPos, st.LoopEndPos, st.RepeatTimes)
+}
+
+// PatternState represents a blink(1) pattern playing state for high-level APIs.
+type PatternState struct {
+	IsPlaying       bool // Is playing
+	CurrentPosition uint // Current position
+	StartPosition   uint // Loop start position, inclusive
+	EndPosition     uint // Loop end position, exclusive
+	RepeatTimes     uint // Remaining times to repeat
+}
+
+func (st PatternState) String() string {
+	return fmt.Sprintf("%s(playing=%t cur=%d loop=[%d,%d) left=%d)", convPlayingToEmoji(st.IsPlaying), st.IsPlaying, st.CurrentPosition, st.StartPosition, st.EndPosition, st.RepeatTimes)
 }
 
 // DeviceLightState is a blink(1) light state for low-level APIs.
@@ -69,15 +95,12 @@ type Pattern struct {
 	States        []LightState // Slice of states to execute in pattern, non-empty patterns will be set to the device automatically
 }
 
-// PatternState represents a blink(1) pattern playing state for high-level APIs.
-type PatternState struct {
-	IsPlaying       bool // Is playing
-	CurrentPosition uint // Current position
-	StartPosition   uint // Loop start position, inclusive
-	EndPosition     uint // Loop end position, exclusive
-	RepeatTimes     uint // Remaining times to repeat
-}
-
-func (st PatternState) String() string {
-	return fmt.Sprintf("%s(playing=%t cur=%d loop=[%d,%d) left=%d)", convPlayingToEmoji(st.IsPlaying), st.IsPlaying, st.CurrentPosition, st.StartPosition, st.EndPosition, st.RepeatTimes)
+func (p Pattern) String() string {
+	var repeat string
+	if p.RepeatTimes == 0 {
+		repeat = "∞"
+	} else {
+		repeat = strconv.Itoa(int(p.RepeatTimes))
+	}
+	return fmt.Sprintf("🎼(loop=[%d,%d] repeat=%s states=%d)", p.StartPosition, p.EndPosition, repeat, len(p.States))
 }
