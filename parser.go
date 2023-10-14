@@ -49,19 +49,22 @@ var colorMap = map[string]color.Color{
 
 var (
 	regexOnce         sync.Once
+	repeatRegexPat    *regexp.Regexp
 	commentRegexPat   *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
-	errNoColorMatch = errors.New("b1: no color match")
-	errNoFadeMatch  = errors.New("b1: no fade time match")
-	errNoLEDMatch   = errors.New("b1: no LED index match")
-	errBlankQuery   = errors.New("b1: blank query")
+	errNoRepeatMatch = errors.New("b1: no repeat times match")
+	errNoColorMatch  = errors.New("b1: no color match")
+	errNoFadeMatch   = errors.New("b1: no fade time match")
+	errNoLEDMatch    = errors.New("b1: no LED index match")
+	errBlankQuery    = errors.New("b1: blank query")
 )
 
 func initRegex() {
-	// for comments
+	// for simple patterns
+	repeatRegexPat = regexp.MustCompile(`repeat\s*[:=]*\s*(\d+|\bforever\b|\balways\b)`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
 
 	// for colors
@@ -88,6 +91,31 @@ func initRegex() {
 	ledIdxRegexPats[1] = regexp.MustCompile(`\b(?:top|first|1st)\s+(led|light)\b`)
 	ledIdxRegexPats[2] = regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\s+(led|light)\b`)
 	ledIdxRegexPats[12] = regexp.MustCompile(`\b(led|light)[:#=\s]*([012]|top|bottom|btm|all|both|zero|one|two)\b`)
+}
+
+// ParseRepeatTimes parses the case-insensitive unstructured description of repeat times and returns the number of times to repeat.
+func ParseRepeatTimes(query string) (uint, error) {
+	// init regex
+	regexOnce.Do(initRegex)
+
+	// match
+	q := strings.TrimSpace(strings.ToLower(query))
+	m := repeatRegexPat.FindStringSubmatch(q)
+	if len(m) == 0 {
+		return 0, errNoRepeatMatch
+	}
+
+	// handle match
+	switch r := m[1]; r {
+	case "forever", "always", "0":
+		return 0, nil
+	default:
+		times, err := strconv.Atoi(r)
+		if err != nil {
+			return 0, fmt.Errorf("b1: conversion error: %w", err)
+		}
+		return uint(times), nil
+	}
 }
 
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
