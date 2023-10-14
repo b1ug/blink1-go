@@ -27,6 +27,78 @@ func BenchmarkParseStateQuery_Complex(b *testing.B) {
 	}
 }
 
+func TestParseRepeatTimes(t *testing.T) {
+	tests := []struct {
+		query   string
+		times   uint
+		wantErr bool
+	}{
+		{
+			query: "Repeat 25 times",
+			times: 25,
+		},
+		{
+			query: "For 36 times",
+			times: 36,
+		},
+		{
+			query: "repeat: 36",
+			times: 36,
+		},
+		{
+			query: "repeat=26",
+			times: 26,
+		},
+		{
+			query:   "repeat forever",
+			times:   ^uint(0), // Assume that "repeat forever" is represented by max uint value
+			wantErr: false,
+		},
+		{
+			query: "Repeat: 20 times",
+			times: 20,
+		},
+		{
+			query: "(repeat:10)",
+			times: 10,
+		},
+		{
+			query: "(pattern:name=LoveIsInTheAir, repeat=3)",
+			times: 3,
+		},
+		{
+			query: "repeat:0",
+			times: 0,
+		},
+		{
+			query:   "repeat:always",
+			times:   ^uint(0), // Assume that "repeat:always" is represented by max uint value
+			wantErr: false,
+		},
+		{
+			query:   "infinitely repeat",
+			times:   ^uint(0), // Assume that "infinitely repeat" is represented by max uint value
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			got, err := blink1.ParseRepeatTimes(tt.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseRepeatTimes(%q) error = %v, wantErr %v", tt.query, err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			if got != tt.times {
+				t.Errorf("ParseRepeatTimes(%q) = %v, want %v", tt.query, got, tt.times)
+			}
+		})
+	}
+}
+
 func TestParseStateQuery(t *testing.T) {
 	tests := []struct {
 		query   string
