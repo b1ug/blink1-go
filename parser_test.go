@@ -27,6 +27,15 @@ func BenchmarkParseStateQuery_Complex(b *testing.B) {
 	}
 }
 
+func BenchmarkParseRepeatTimes(b *testing.B) {
+	q := `will repeat 5 times infinitely`
+	blink1.ParseRepeatTimes(q)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseRepeatTimes(q)
+	}
+}
+
 func TestParseRepeatTimes(t *testing.T) {
 	tests := []struct {
 		query   string
