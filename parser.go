@@ -64,7 +64,7 @@ var (
 
 func initRegex() {
 	// for simple patterns
-	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bforever\b|\balways\b|\binfinite(?:ly)?\b)|\b(infinite(?:ly)?|forever|always)\s+repeat\b`)
+	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
 
 	// for colors
