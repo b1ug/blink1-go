@@ -64,7 +64,7 @@ var (
 
 func initRegex() {
 	// for simple patterns
-	repeatRegexPat = regexp.MustCompile(`repeat\s*[:=]*\s*(\d+|\bforever\b|\balways\b)`)
+	repeatRegexPat = regexp.MustCompile(`repeat\s*[:=]*\s*(\d+|\bforever\b|\balways\b|\binfinite(?:ly)?\b)`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
 
 	// for colors
@@ -107,7 +107,7 @@ func ParseRepeatTimes(query string) (uint, error) {
 
 	// handle match
 	switch r := m[1]; r {
-	case "forever", "always", "0":
+	case "0", "forever", "always", "infinite", "infinitely":
 		return 0, nil
 	default:
 		times, err := strconv.Atoi(r)

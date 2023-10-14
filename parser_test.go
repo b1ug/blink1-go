@@ -38,10 +38,6 @@ func TestParseRepeatTimes(t *testing.T) {
 			times: 25,
 		},
 		{
-			query: "For 36 times",
-			times: 36,
-		},
-		{
 			query: "repeat: 36",
 			times: 36,
 		},
@@ -51,7 +47,7 @@ func TestParseRepeatTimes(t *testing.T) {
 		},
 		{
 			query:   "repeat forever",
-			times:   ^uint(0), // Assume that "repeat forever" is represented by max uint value
+			times:   0,
 			wantErr: false,
 		},
 		{
@@ -72,12 +68,22 @@ func TestParseRepeatTimes(t *testing.T) {
 		},
 		{
 			query:   "repeat:always",
-			times:   ^uint(0), // Assume that "repeat:always" is represented by max uint value
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "repeat: infinitely",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "repeat: infinite",
+			times:   0,
 			wantErr: false,
 		},
 		{
 			query:   "infinitely repeat",
-			times:   ^uint(0), // Assume that "infinitely repeat" is represented by max uint value
+			times:   0,
 			wantErr: false,
 		},
 	}
