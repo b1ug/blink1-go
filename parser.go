@@ -12,49 +12,61 @@ import (
 )
 
 var colorMap = map[string]color.Color{
-	"beige":   ColorBeige,
-	"black":   ColorBlack,
-	"blue":    ColorBlue,
-	"brown":   ColorBrown,
-	"cyan":    ColorCyan,
-	"aqua":    ColorCyan,
-	"gold":    ColorGold,
-	"gray":    ColorGray,
-	"grey":    ColorGray,
-	"green":   ColorGreen,
-	"indigo":  ColorIndigo,
-	"lime":    ColorLime,
-	"magenta": ColorMagenta,
-	"fuchsia": ColorMagenta,
-	"maroon":  ColorMaroon,
-	"mint":    ColorMint,
-	"navy":    ColorNavy,
-	"olive":   ColorOlive,
-	"orange":  ColorOrange,
-	"pink":    ColorPink,
-	"purple":  ColorPurple,
-	"red":     ColorRed,
-	"scarlet": ColorScarlet,
-	"silver":  ColorSilver,
-	"teal":    ColorTeal,
-	"violet":  ColorViolet,
-	"white":   ColorWhite,
-	"yellow":  ColorYellow,
+	"apricot":  ColorApricot,
+	"aqua":     ColorCyan,
+	"beige":    ColorBeige,
+	"black":    ColorBlack,
+	"blue":     ColorBlue,
+	"bronze":   ColorBronze,
+	"brown":    ColorBrown,
+	"cyan":     ColorCyan,
+	"fuchsia":  ColorMagenta,
+	"gold":     ColorGold,
+	"gray":     ColorGray,
+	"green":    ColorGreen,
+	"grey":     ColorGray,
+	"indigo":   ColorIndigo,
+	"lavender": ColorLavender,
+	"lime":     ColorLime,
+	"magenta":  ColorMagenta,
+	"maroon":   ColorMaroon,
+	"mint":     ColorMint,
+	"navy":     ColorNavy,
+	"olive":    ColorOlive,
+	"orange":   ColorOrange,
+	"peach":    ColorPeach,
+	"pink":     ColorPink,
+	"plum":     ColorPlum,
+	"purple":   ColorPurple,
+	"red":      ColorRed,
+	"scarlet":  ColorScarlet,
+	"silver":   ColorSilver,
+	"teal":     ColorTeal,
+	"violet":   ColorViolet,
+	"white":    ColorWhite,
+	"yellow":   ColorYellow,
 }
 
 var (
 	regexOnce         sync.Once
+	repeatRegexPat    *regexp.Regexp
+	commentRegexPat   *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
-	errNoColorMatch = errors.New("b1: no color match")
-	errNoFadeMatch  = errors.New("b1: no fade time match")
-	errNoLEDMatch   = errors.New("b1: no LED index match")
-	errBlankQuery   = errors.New("b1: blank query")
+	errNoRepeatMatch = errors.New("b1: no repeat times match")
+	errNoColorMatch  = errors.New("b1: no color match")
+	errNoFadeMatch   = errors.New("b1: no fade time match")
+	errNoLEDMatch    = errors.New("b1: no LED index match")
+	errBlankQuery    = errors.New("b1: blank query")
 )
 
 func initRegex() {
+	// for simple patterns
+	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always)\s+repeat\b`)
+	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
+
 	// for colors
 	colorWords := make([]string, 0, len(colorMap))
 	for k := range colorMap {
@@ -81,6 +93,40 @@ func initRegex() {
 	ledIdxRegexPats[12] = regexp.MustCompile(`\b(led|light)[:#=\s]*([012]|top|bottom|btm|all|both|zero|one|two)\b`)
 }
 
+// ParseRepeatTimes parses the case-insensitive unstructured description of repeat times and returns the number of times to repeat.
+func ParseRepeatTimes(query string) (uint, error) {
+	// init regex
+	regexOnce.Do(initRegex)
+
+	// match
+	q := strings.TrimSpace(strings.ToLower(query))
+	m := repeatRegexPat.FindStringSubmatch(q)
+	if len(m) <= 1 {
+		return 0, errNoRepeatMatch
+	}
+
+	// handle match
+	var r string
+	for i := 1; i < len(m); i++ {
+		if m[i] != "" {
+			r = m[i]
+			break
+		}
+	}
+	switch r {
+	case "0", "forever", "always", "infinite", "infinitely":
+		return 0, nil
+	case "":
+		return 0, errNoRepeatMatch
+	default:
+		times, err := strconv.Atoi(r)
+		if err != nil {
+			return 0, fmt.Errorf("b1: conversion error: %w", err)
+		}
+		return uint(times), nil
+	}
+}
+
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
 // The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec".
 // If the query is empty, it returns an error.
@@ -100,6 +146,9 @@ func ParseStateQuery(query string) (LightState, error) {
 	if query == "" {
 		return state, errBlankQuery
 	}
+
+	// remove comments
+	query = commentRegexPat.ReplaceAllString(query, "")
 
 	// parse each part
 	var err error

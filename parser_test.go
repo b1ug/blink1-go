@@ -27,6 +27,108 @@ func BenchmarkParseStateQuery_Complex(b *testing.B) {
 	}
 }
 
+func BenchmarkParseRepeatTimes(b *testing.B) {
+	q := `will repeat 5 times infinitely`
+	blink1.ParseRepeatTimes(q)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseRepeatTimes(q)
+	}
+}
+
+func TestParseRepeatTimes(t *testing.T) {
+	tests := []struct {
+		query   string
+		times   uint
+		wantErr bool
+	}{
+		{
+			query: "Repeat 25 times",
+			times: 25,
+		},
+		{
+			query: "repeat: 36",
+			times: 36,
+		},
+		{
+			query: "repeat=26",
+			times: 26,
+		},
+		{
+			query:   "repeat forever",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query: "Repeat: 20 times",
+			times: 20,
+		},
+		{
+			query: "(repeat:10)",
+			times: 10,
+		},
+		{
+			query: "(pattern:name=LoveIsInTheAir, repeat=3)",
+			times: 3,
+		},
+		{
+			query: "repeat:0",
+			times: 0,
+		},
+		{
+			query:   "repeat:always",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "repeat: infinitely",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "repeat: infinite",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "always repeat",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "infinite repeat",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "infinitely repeat",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "forever repeat",
+			times:   0,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			got, err := blink1.ParseRepeatTimes(tt.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseRepeatTimes(%q) error = %v, wantErr %v", tt.query, err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			if got != tt.times {
+				t.Errorf("ParseRepeatTimes(%q) = %v, want %v", tt.query, got, tt.times)
+			}
+		})
+	}
+}
+
 func TestParseStateQuery(t *testing.T) {
 	tests := []struct {
 		query   string
@@ -363,6 +465,10 @@ func TestParseStateQuery(t *testing.T) {
 		},
 		{
 			query: `led=1 color=yellow now`,
+			want:  blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LED1, FadeTime: 0},
+		},
+		{
+			query: `led=1 color=yellow now // led=2 color=blue time=500ms`,
 			want:  blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LED1, FadeTime: 0},
 		},
 		{
