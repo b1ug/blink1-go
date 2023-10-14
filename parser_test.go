@@ -82,7 +82,22 @@ func TestParseRepeatTimes(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			query:   "always repeat",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "infinite repeat",
+			times:   0,
+			wantErr: false,
+		},
+		{
 			query:   "infinitely repeat",
+			times:   0,
+			wantErr: false,
+		},
+		{
+			query:   "forever repeat",
 			times:   0,
 			wantErr: false,
 		},
