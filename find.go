@@ -1,6 +1,7 @@
 package blink1
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -28,7 +29,7 @@ func FindDeviceInfoBySerialNumber(sn string) (*hid.DeviceInfo, error) {
 	})
 	// not found
 	if dev == nil {
-		return nil, errDeviceNotFound
+		return nil, fmt.Errorf("%w for %q", errDeviceNotFound, sn)
 	}
 	return dev, nil
 }

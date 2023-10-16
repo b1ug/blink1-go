@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -55,6 +56,9 @@ var (
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
+	nameOnce   sync.Once
+	colorNames []string
+
 	errNoRepeatMatch = errors.New("b1: no repeat times match")
 	errNoColorMatch  = errors.New("b1: no color match")
 	errNoFadeMatch   = errors.New("b1: no fade time match")
@@ -91,6 +95,29 @@ func initRegex() {
 	ledIdxRegexPats[1] = regexp.MustCompile(`\b(?:top|first|1st)\s+(led|light)\b`)
 	ledIdxRegexPats[2] = regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\s+(led|light)\b`)
 	ledIdxRegexPats[12] = regexp.MustCompile(`\b(led|light)[:#=\s]*([012]|top|bottom|btm|all|both|zero|one|two)\b`)
+}
+
+func initNames() {
+	colorNames = make([]string, 0, len(colorMap))
+	for k := range colorMap {
+		colorNames = append(colorNames, k)
+	}
+	sort.Strings(colorNames)
+}
+
+// GetColorByName returns the color corresponding to the given name from the preset color map.
+// If the color is found, it returns the color and true, otherwise it returns nil and false.
+func GetColorByName(name string) (cl color.Color, found bool) {
+	cl, found = colorMap[name]
+	return
+}
+
+// GetColorNames returns the color names from the preset color map.
+func GetColorNames() []string {
+	nameOnce.Do(initNames)
+	cls := make([]string, len(colorNames))
+	copy(cls, colorNames)
+	return cls
 }
 
 // ParseRepeatTimes parses the case-insensitive unstructured description of repeat times and returns the number of times to repeat.
