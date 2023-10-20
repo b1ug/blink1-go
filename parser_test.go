@@ -56,6 +56,10 @@ func TestParseTitle(t *testing.T) {
 			expected: "Crash Course in Go",
 		},
 		{
+			query:    "Title :  Crash Course in Rust  ",
+			expected: "Crash Course in Rust",
+		},
+		{
 			query:    "topic = Advanced Topics",
 			expected: "Advanced Topics",
 		},
@@ -66,6 +70,10 @@ func TestParseTitle(t *testing.T) {
 		{
 			query:    "topic =Great Topics  ",
 			expected: "Great Topics",
+		},
+		{
+			query:    "TOPIC = LOVELY Topics  ",
+			expected: "LOVELY Topics",
 		},
 		{
 			query:    "idea: Revolutionize AI",

@@ -73,7 +73,7 @@ func initRegex() {
 	// for simple patterns
 	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
-	titleRegexPat = regexp.MustCompile(`\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
+	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
 
 	// for colors
 	colorWords := make([]string, 0, len(colorMap))
