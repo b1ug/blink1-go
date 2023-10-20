@@ -124,7 +124,7 @@ func GetColorNames() []string {
 	return cls
 }
 
-// ParseTitle parses the title or topic or idea from the query string.
+// ParseTitle parses the labeled title or topic or idea string from the query string. It returns the title or an error if no title is found.
 func ParseTitle(query string) (string, error) {
 	// init regex
 	regexOnce.Do(initRegex)
@@ -132,7 +132,8 @@ func ParseTitle(query string) (string, error) {
 	// match
 	q := strings.TrimSpace(query)
 	m := titleRegexPat.FindStringSubmatch(q)
-	if len(m) <= 2 { // We now need match of length > 2 as our pattern has a second capture group
+	if len(m) <= 2 {
+		// We now need match of length > 2 as our pattern has a second capture group
 		return emptyStr, errNoTitleMatch
 	}
 
