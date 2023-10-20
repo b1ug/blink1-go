@@ -72,8 +72,16 @@ func TestParseTitle(t *testing.T) {
 			expected: "Revolutionize AI",
 		},
 		{
+			query:    "idea::: Revolutionize AI",
+			expected: "Revolutionize AI",
+		},
+		{
 			query:    "title=Deep Reinforcement Learning",
 			expected: "Deep Reinforcement Learning",
+		},
+		{
+			query:    "title No Borders",
+			expected: "No Borders",
 		},
 		{
 			query:    "subject: The Future of Quantum Computing",
