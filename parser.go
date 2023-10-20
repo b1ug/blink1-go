@@ -57,6 +57,7 @@ var (
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
+	emptyStr   string
 	nameOnce   sync.Once
 	colorNames []string
 
@@ -72,7 +73,7 @@ func initRegex() {
 	// for simple patterns
 	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
-	titleRegexPat = regexp.MustCompile(`\b(title|topic|idea)[\s:=]*(.+?)$`)
+	titleRegexPat = regexp.MustCompile(`\b(title|topic|idea|subject)\s*[:=]\s*([^\s].*?[^\s])\s*$`)
 
 	// for colors
 	colorWords := make([]string, 0, len(colorMap))
@@ -132,19 +133,13 @@ func ParseTitle(query string) (string, error) {
 	q := strings.TrimSpace(query)
 	m := titleRegexPat.FindStringSubmatch(q)
 	if len(m) <= 2 { // We now need match of length > 2 as our pattern has a second capture group
-		return "", errNoTitleMatch
+		return emptyStr, errNoTitleMatch
 	}
 
 	// handle match
-	var title string
-	for i := 2; i < len(m); i++ { // We start from 2, as the first capture group in our pattern is the word before the title
-		if m[i] != "" {
-			title = m[i]
-			break
-		}
-	}
-	if title == "" {
-		return "", errNoTitleMatch
+	title := m[2]
+	if title == emptyStr {
+		return emptyStr, errNoTitleMatch
 	}
 	return title, nil
 }
@@ -164,7 +159,7 @@ func ParseRepeatTimes(query string) (uint, error) {
 	// handle match
 	var r string
 	for i := 1; i < len(m); i++ {
-		if m[i] != "" {
+		if m[i] != emptyStr {
 			r = m[i]
 			break
 		}
@@ -172,7 +167,7 @@ func ParseRepeatTimes(query string) (uint, error) {
 	switch r {
 	case "0", "forever", "always", "infinite", "infinitely":
 		return 0, nil
-	case "":
+	case emptyStr:
 		return 0, errNoRepeatMatch
 	default:
 		times, err := strconv.Atoi(r)
@@ -199,12 +194,12 @@ func ParseStateQuery(query string) (LightState, error) {
 	// prepare
 	var state LightState
 	query = strings.TrimSpace(strings.ToLower(query))
-	if query == "" {
+	if query == emptyStr {
 		return state, errBlankQuery
 	}
 
 	// remove comments
-	query = commentRegexPat.ReplaceAllString(query, "")
+	query = commentRegexPat.ReplaceAllString(query, emptyStr)
 
 	// parse each part
 	var err error
