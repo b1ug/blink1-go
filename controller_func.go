@@ -136,7 +136,7 @@ func (c *Controller) PlayPattern(pt Pattern) error {
 	}
 
 	// load pattern to RAM
-	if err := c.LoadPattern(pt.StartPosition, pt.EndPosition, pt.States); err != nil {
+	if err := c.LoadPattern(pt.StartPosition, pt.EndPosition, pt.Sequence); err != nil {
 		return err
 	}
 

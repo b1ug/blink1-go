@@ -1,8 +1,10 @@
 package blink1_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"image/color"
+	"reflect"
 	"testing"
 	"time"
 
@@ -132,7 +134,7 @@ func TestStringer(t *testing.T) {
 				StartPosition: 0,
 				EndPosition:   10,
 				RepeatTimes:   1,
-				States: []b1.LightState{
+				Sequence: []b1.LightState{
 					{
 						Color:    color.RGBA{255, 0, 0, 255},
 						LED:      b1.LED1,
@@ -145,7 +147,7 @@ func TestStringer(t *testing.T) {
 					},
 				},
 			},
-			exp: "🎼(loop=[0,10] repeat=1 states=2)",
+			exp: "🎼(loop=[0,10] repeat=1 seq=2)",
 		},
 		{
 			typ: b1.Pattern{
@@ -153,7 +155,7 @@ func TestStringer(t *testing.T) {
 				EndPosition:   20,
 				RepeatTimes:   0,
 			},
-			exp: "🎼(loop=[10,20] repeat=∞ states=0)",
+			exp: "🎼(loop=[10,20] repeat=∞ seq=0)",
 		},
 	}
 	for _, tc := range tests {
@@ -163,4 +165,146 @@ func TestStringer(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSerializeLightState(t *testing.T) {
+	l1 := b1.LightState{Color: b1.ColorRed, LED: b1.LED1, FadeTime: 256 * time.Millisecond}
+
+	// text encode
+	t1, err := l1.MarshalText()
+	if err != nil {
+		t.Errorf("%T.MarshalText() got error = %v, want nil", l1, err)
+	}
+	if r := "#FF0000L1T256"; string(t1) != r {
+		t.Errorf("%T.MarshalText() got result = %v, want %v", l1, string(t1), r)
+	}
+	t.Logf("%v %T.MarshalText() = %v", l1, l1, string(t1))
+
+	// json decode
+	j1, err := json.Marshal(l1)
+	if err != nil {
+		t.Errorf("json.Marshal(%v) got error = %v, want nil", l1, err)
+	}
+	if r := `"#FF0000L1T256"`; string(j1) != r {
+		t.Errorf("json.Marshal(%v) got result = %v, want %v", l1, string(j1), r)
+	}
+	t.Logf("%v json.Marshal() = %v", l1, string(j1))
+
+	// text decode
+	var l2 b1.LightState
+	if err := l2.UnmarshalText(t1); err != nil {
+		t.Errorf("%T.UnmarshalText(%v) got error = %v, want nil", l2, string(t1), err)
+	}
+	if l2 != l1 {
+		t.Errorf("%T.UnmarshalText(%v) got result = %v, want %v", l2, string(t1), l2, l1)
+	}
+	t.Logf("%T.UnmarshalText(%v) = %v", l2, string(t1), l2)
+
+	// json encode
+	var l3 b1.LightState
+	if err := json.Unmarshal(j1, &l3); err != nil {
+		t.Errorf("json.Unmarshal(%v) got error = %v, want nil", string(j1), err)
+	}
+	if l3 != l1 {
+		t.Errorf("json.Unmarshal(%v) got result = %v, want %v", string(j1), l3, l1)
+	}
+	t.Logf("json.Unmarshal(%v) = %v", string(j1), l3)
+
+	// invalid text for decode
+	var l4 b1.LightState
+	if err := l4.UnmarshalText([]byte("invalid")); err == nil {
+		t.Errorf("%T.UnmarshalText(%v) got error = %v, want nil", l4, "invalid", err)
+	}
+	if err := l4.UnmarshalText([]byte("")); err == nil {
+		t.Errorf("%T.UnmarshalText(%v) got error = %v, want nil", l4, "", err)
+	}
+	if err := l4.UnmarshalText([]byte("#FF0000L1TX256")); err == nil {
+		t.Errorf("%T.UnmarshalText(%v) got error = %v, want nil", l4, "#FF0000L1T256;", err)
+	}
+	if err := json.Unmarshal([]byte(`"#FF0000M1T256"`), &l4); err == nil {
+		t.Errorf("json.Unmarshal(%v) got error = %v, want nil", `"#FF0000M1T256"`, err)
+	}
+}
+
+func TestSerializeStateSequence(t *testing.T) {
+	l1 := b1.LightState{Color: b1.ColorRed, LED: b1.LED1, FadeTime: 256 * time.Millisecond}
+	l2 := b1.LightState{Color: b1.ColorGreen, LED: b1.LED2, FadeTime: 512 * time.Millisecond}
+	l3 := b1.LightState{Color: b1.ColorBlue, LED: b1.LEDAll, FadeTime: 1024 * time.Millisecond}
+	s1 := b1.StateSequence{l1, l2, l3}
+
+	// text encode
+	t1, err := s1.MarshalText()
+	if err != nil {
+		t.Errorf("%T.MarshalText() got error = %v, want nil", s1, err)
+	}
+	if r := "#FF0000L1T256;#00FF00L2T512;#0000FFL0T1024"; string(t1) != r {
+		t.Errorf("%T.MarshalText() got result = %v, want %v", s1, string(t1), r)
+	}
+	t.Logf("%v %T.MarshalText() = %v", s1, s1, string(t1))
+
+	// json decode
+	j1, err := json.Marshal(s1)
+	if err != nil {
+		t.Errorf("json.Marshal(%v) got error = %v, want nil", s1, err)
+	}
+	if r := `"#FF0000L1T256;#00FF00L2T512;#0000FFL0T1024"`; string(j1) != r {
+		t.Errorf("json.Marshal(%v) got result = %v, want %v", s1, string(j1), r)
+	}
+	t.Logf("%v json.Marshal() = %v", s1, string(j1))
+
+	// text decode
+	var s2 b1.StateSequence
+	if err := s2.UnmarshalText(t1); err != nil {
+		t.Errorf("%T.UnmarshalText(%v) got error = %v, want nil", s2, string(t1), err)
+	}
+	if !reflect.DeepEqual(s2, s1) {
+		t.Errorf("%T.UnmarshalText(%v) got result = %v, want %v", s2, string(t1), s2, s1)
+	}
+	t.Logf("%T.UnmarshalText(%v) = %v", s2, string(t1), s2)
+
+	// json encode
+	var s3 b1.StateSequence
+	if err := json.Unmarshal(j1, &s3); err != nil {
+		t.Errorf("json.Unmarshal(%v) got error = %v, want nil", string(j1), err)
+	}
+	if !reflect.DeepEqual(s3, s1) {
+		t.Errorf("json.Unmarshal(%v) got result = %v, want %v", string(j1), s3, s1)
+	}
+	t.Logf("json.Unmarshal(%v) = %v", string(j1), s3)
+
+	// error cases
+	var s4 b1.StateSequence
+	if err := s4.UnmarshalText([]byte("#FF0000L1T256;FF0000L1T256")); err == nil {
+		t.Errorf("%T.UnmarshalText(%v) got error = %v, want nil", s4, "#FF0000L1T256 #FF0000L1T256", err)
+	}
+
+	// empty sequence
+	var sb b1.StateSequence
+	t2, err := sb.MarshalText()
+	if err != nil {
+		t.Errorf("%T.MarshalText() got error = %v, want nil", sb, err)
+	}
+	if r := ""; string(t2) != r {
+		t.Errorf("%T.MarshalText() got result = %v, want %v", sb, string(t2), r)
+	}
+	t.Logf("%v %T.MarshalText() = %v", sb, sb, string(t2))
+
+	if err := sb.UnmarshalText(t2); err != nil {
+		t.Errorf("%T.UnmarshalText(%v) got error = %v, want nil", sb, string(t2), err)
+	}
+	if !reflect.DeepEqual(sb, b1.StateSequence{}) {
+		t.Errorf("%T.UnmarshalText(%v) got result = %v, want %v", sb, string(t2), sb, b1.StateSequence{})
+	}
+	t.Logf("%T.UnmarshalText(%v) = %v", sb, string(t2), sb)
+
+	// one element sequence
+	sc := b1.StateSequence{l1}
+	t3, err := sc.MarshalText()
+	if err != nil {
+		t.Errorf("%T.MarshalText() got error = %v, want nil", sc, err)
+	}
+	if r := "#FF0000L1T256"; string(t3) != r {
+		t.Errorf("%T.MarshalText() got result = %v, want %v", sc, string(t3), r)
+	}
+	t.Logf("%v %T.MarshalText() = %v", sc, sc, string(t3))
 }
