@@ -50,15 +50,18 @@ var colorMap = map[string]color.Color{
 
 var (
 	regexOnce         sync.Once
+	titleRegexPat     *regexp.Regexp
 	repeatRegexPat    *regexp.Regexp
 	commentRegexPat   *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
+	emptyStr   string
 	nameOnce   sync.Once
 	colorNames []string
 
+	errNoTitleMatch  = errors.New("b1: no title match")
 	errNoRepeatMatch = errors.New("b1: no repeat times match")
 	errNoColorMatch  = errors.New("b1: no color match")
 	errNoFadeMatch   = errors.New("b1: no fade time match")
@@ -70,6 +73,7 @@ func initRegex() {
 	// for simple patterns
 	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
+	titleRegexPat = regexp.MustCompile(`\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
 
 	// for colors
 	colorWords := make([]string, 0, len(colorMap))
@@ -120,6 +124,27 @@ func GetColorNames() []string {
 	return cls
 }
 
+// ParseTitle parses the labeled title or topic or idea string from the query string. It returns the title or an error if no title is found.
+func ParseTitle(query string) (string, error) {
+	// init regex
+	regexOnce.Do(initRegex)
+
+	// match
+	q := strings.TrimSpace(query)
+	m := titleRegexPat.FindStringSubmatch(q)
+	if len(m) <= 2 {
+		// We now need match of length > 2 as our pattern has a second capture group
+		return emptyStr, errNoTitleMatch
+	}
+
+	// handle match
+	title := m[2]
+	if title == emptyStr {
+		return emptyStr, errNoTitleMatch
+	}
+	return title, nil
+}
+
 // ParseRepeatTimes parses the case-insensitive unstructured description of repeat times and returns the number of times to repeat.
 func ParseRepeatTimes(query string) (uint, error) {
 	// init regex
@@ -135,7 +160,7 @@ func ParseRepeatTimes(query string) (uint, error) {
 	// handle match
 	var r string
 	for i := 1; i < len(m); i++ {
-		if m[i] != "" {
+		if m[i] != emptyStr {
 			r = m[i]
 			break
 		}
@@ -143,7 +168,7 @@ func ParseRepeatTimes(query string) (uint, error) {
 	switch r {
 	case "0", "forever", "always", "infinite", "infinitely":
 		return 0, nil
-	case "":
+	case emptyStr:
 		return 0, errNoRepeatMatch
 	default:
 		times, err := strconv.Atoi(r)
@@ -170,12 +195,12 @@ func ParseStateQuery(query string) (LightState, error) {
 	// prepare
 	var state LightState
 	query = strings.TrimSpace(strings.ToLower(query))
-	if query == "" {
+	if query == emptyStr {
 		return state, errBlankQuery
 	}
 
 	// remove comments
-	query = commentRegexPat.ReplaceAllString(query, "")
+	query = commentRegexPat.ReplaceAllString(query, emptyStr)
 
 	// parse each part
 	var err error

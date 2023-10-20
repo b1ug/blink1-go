@@ -9,6 +9,24 @@ import (
 	"github.com/b1ug/blink1-go"
 )
 
+func BenchmarkParseTitle(b *testing.B) {
+	q := `title: Crash Course in Go`
+	blink1.ParseTitle(q) // I've assumed you're calling ParseTitle function directly in the sample. Adjust as necessary.
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseTitle(q)
+	}
+}
+
+func BenchmarkParseRepeatTimes(b *testing.B) {
+	q := `will repeat 5 times infinitely`
+	blink1.ParseRepeatTimes(q)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blink1.ParseRepeatTimes(q)
+	}
+}
+
 func BenchmarkParseStateQuery_Simple(b *testing.B) {
 	q := `(led:2, color:pink, time:500ms)`
 	blink1.ParseStateQuery(q)
@@ -27,12 +45,76 @@ func BenchmarkParseStateQuery_Complex(b *testing.B) {
 	}
 }
 
-func BenchmarkParseRepeatTimes(b *testing.B) {
-	q := `will repeat 5 times infinitely`
-	blink1.ParseRepeatTimes(q)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		blink1.ParseRepeatTimes(q)
+func TestParseTitle(t *testing.T) {
+	tests := []struct {
+		query    string
+		expected string
+		wantErr  bool
+	}{
+		{
+			query:    "title: Crash Course in Go    ",
+			expected: "Crash Course in Go",
+		},
+		{
+			query:    "topic = Advanced Topics",
+			expected: "Advanced Topics",
+		},
+		{
+			query:    "topic= Another Topics",
+			expected: "Another Topics",
+		},
+		{
+			query:    "topic =Great Topics  ",
+			expected: "Great Topics",
+		},
+		{
+			query:    "idea: Revolutionize AI",
+			expected: "Revolutionize AI",
+		},
+		{
+			query:    "idea::: Revolutionize AI",
+			expected: "Revolutionize AI",
+		},
+		{
+			query:    "title=Deep Reinforcement Learning",
+			expected: "Deep Reinforcement Learning",
+		},
+		{
+			query:    "title No Borders",
+			expected: "No Borders",
+		},
+		{
+			query:    "subject: The Future of Quantum Computing",
+			expected: "The Future of Quantum Computing",
+		},
+		{
+			query:   "subj: The Future of Quantum Computing",
+			wantErr: true,
+		},
+		{
+			query:   "title = ",
+			wantErr: true,
+		},
+		{
+			query:   "topic:",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			got, err := blink1.ParseTitle(tt.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseTitle(%q) error = %v, wantErr = %v", tt.query, err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			if got != tt.expected {
+				t.Errorf("ParseTitle(%q) got = %q, want = %q", tt.query, got, tt.expected)
+			}
+		})
 	}
 }
 
@@ -116,14 +198,14 @@ func TestParseRepeatTimes(t *testing.T) {
 		t.Run(tt.query, func(t *testing.T) {
 			got, err := blink1.ParseRepeatTimes(tt.query)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseRepeatTimes(%q) error = %v, wantErr %v", tt.query, err, tt.wantErr)
+				t.Errorf("ParseRepeatTimes(%q) error = %v, wantErr = %v", tt.query, err, tt.wantErr)
 				return
 			}
 			if err != nil {
 				return
 			}
 			if got != tt.times {
-				t.Errorf("ParseRepeatTimes(%q) = %v, want %v", tt.query, got, tt.times)
+				t.Errorf("ParseRepeatTimes(%q) got = %q, want = %q", tt.query, got, tt.times)
 			}
 		})
 	}
@@ -488,14 +570,14 @@ func TestParseStateQuery(t *testing.T) {
 		t.Run(tt.query, func(t *testing.T) {
 			got, err := blink1.ParseStateQuery(tt.query)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseStateQuery(%q) got error = %v, wantErr %v", tt.query, err, tt.wantErr)
+				t.Errorf("ParseStateQuery(%q) got error = %v, wantErr = %v", tt.query, err, tt.wantErr)
 				return
 			}
 			if err != nil {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParseStateQuery(%q) = %v, want %v", tt.query, got, tt.want)
+				t.Errorf("ParseStateQuery(%q) got = %q, want = %q", tt.query, got, tt.want)
 			}
 		})
 	}
