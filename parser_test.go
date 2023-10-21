@@ -166,39 +166,44 @@ func TestParseRepeatTimes(t *testing.T) {
 			times: 0,
 		},
 		{
-			query:   "repeat:always",
-			times:   0,
-			wantErr: false,
+			query: "Please repeat once",
+			times: 1,
 		},
 		{
-			query:   "repeat: infinitely",
-			times:   0,
-			wantErr: false,
+			query: "Repeat twice",
+			times: 2,
 		},
 		{
-			query:   "repeat: infinite",
-			times:   0,
-			wantErr: false,
+			query: "Repeat thrice",
+			times: 3,
 		},
 		{
-			query:   "always repeat",
-			times:   0,
-			wantErr: false,
+			query: "repeat:always",
+			times: 0,
 		},
 		{
-			query:   "infinite repeat",
-			times:   0,
-			wantErr: false,
+			query: "repeat: infinitely",
+			times: 0,
 		},
 		{
-			query:   "infinitely repeat",
-			times:   0,
-			wantErr: false,
+			query: "repeat: infinite",
+			times: 0,
 		},
 		{
-			query:   "forever repeat",
-			times:   0,
-			wantErr: false,
+			query: "always repeat",
+			times: 0,
+		},
+		{
+			query: "infinite repeat",
+			times: 0,
+		},
+		{
+			query: "infinitely repeat",
+			times: 0,
+		},
+		{
+			query: "forever repeat",
+			times: 0,
 		},
 	}
 
@@ -228,6 +233,10 @@ func TestParseStateQuery(t *testing.T) {
 		{
 			query: "turn off all lights right now",
 			want:  blink1.LightState{Color: blink1.ColorBlack, LED: blink1.LEDAll, FadeTime: 0},
+		},
+		{
+			query: "turn on all lights right now",
+			want:  blink1.LightState{Color: blink1.ColorWhite, LED: blink1.LEDAll, FadeTime: 0},
 		},
 		{
 			query: "set led 1 to color #ff00ff over 2 sec",
@@ -512,6 +521,14 @@ func TestParseStateQuery(t *testing.T) {
 		{
 			query: "turn both light green within 800ms",
 			want:  blink1.LightState{Color: blink1.ColorGreen, LED: blink1.LEDAll, FadeTime: 800 * time.Millisecond},
+		},
+		{
+			query: "Maintain all LEDs on YELLOW for 3.5 seconds",
+			want:  blink1.LightState{Color: blink1.ColorYellow, LED: blink1.LEDAll, FadeTime: 3500 * time.Millisecond},
+		},
+		{
+			query: "Maintain the GREEN on all LEDs for 1 second",
+			want:  blink1.LightState{Color: blink1.ColorGreen, LED: blink1.LEDAll, FadeTime: 1 * time.Second},
 		},
 		{
 			query: "🎨(color=#800080 led=1 fade=0ms)",

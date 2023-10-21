@@ -54,6 +54,7 @@ var (
 	repeatRegexPat    *regexp.Regexp
 	commentRegexPat   *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
+	colorRegexOrder   []string
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
@@ -71,7 +72,7 @@ var (
 
 func initRegex() {
 	// for simple patterns
-	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always)\s+repeat\b`)
+	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bonce|\btwice|\bthrice|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always|once|twice|thrice)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
 	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
 
@@ -81,12 +82,13 @@ func initRegex() {
 		colorWords = append(colorWords, k)
 	}
 	colorRegexPats["name"] = regexp.MustCompile(fmt.Sprintf(`\b(%s)\b`, strings.Join(colorWords, "|")))
-	colorRegexPats["on"] = regexp.MustCompile(`\b(on)\b`)
-	colorRegexPats["off"] = regexp.MustCompile(`\b(off)\b`)
 	colorRegexPats["rgb"] = regexp.MustCompile(`\brgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)`)
 	colorRegexPats["hsb"] = regexp.MustCompile(`\bhsb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)`)
 	colorRegexPats["hex6"] = regexp.MustCompile(`#([0-9a-f]{6})\b`)
 	colorRegexPats["hex3"] = regexp.MustCompile(`#([0-9a-f]{3})\b`)
+	colorRegexPats["off"] = regexp.MustCompile(`\b(off)\b`)
+	colorRegexPats["on"] = regexp.MustCompile(`\b(on)\b`)
+	colorRegexOrder = []string{"name", "rgb", "hsb", "hex6", "hex3", "off", "on"}
 
 	// for fade msec
 	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(0|now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\s+now|swiftly|this\s+moment|no\s+time)\b`)
@@ -168,6 +170,12 @@ func ParseRepeatTimes(query string) (uint, error) {
 	switch r {
 	case "0", "forever", "always", "infinite", "infinitely":
 		return 0, nil
+	case "once":
+		return 1, nil
+	case "twice":
+		return 2, nil
+	case "thrice":
+		return 3, nil
 	case emptyStr:
 		return 0, errNoRepeatMatch
 	default:
@@ -220,11 +228,15 @@ func ParseStateQuery(query string) (LightState, error) {
 
 func parseColor(query string) (color.Color, error) {
 	// parse
-	for key, pat := range colorRegexPats {
-		m := pat.FindStringSubmatch(query)
+	for _, key := range colorRegexOrder {
+		pat, ok := colorRegexPats[key]
+		if !ok {
+			continue
+		}
 
-		// not match
+		m := pat.FindStringSubmatch(query)
 		if m == nil {
+			// not match
 			continue
 		}
 
