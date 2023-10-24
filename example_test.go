@@ -7,6 +7,11 @@ import (
 	b1 "github.com/b1ug/blink1-go"
 )
 
+// This example checks if the current OS is supported by the underlying HID library.
+func ExampleIsRunningOnSupportedOS() {
+	fmt.Println(b1.IsRunningOnSupportedOS())
+}
+
 // This example shows how to run test command on the blink(1) device.
 func ExampleDevice_Test() {
 	d, err := b1.OpenNextDevice()
