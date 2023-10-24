@@ -196,6 +196,15 @@ func (seq *StateSequence) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// TotalTime returns the total time of the sequence.
+func (seq StateSequence) TotalTime() time.Duration {
+	var total time.Duration
+	for _, st := range seq {
+		total += st.FadeTime
+	}
+	return total
+}
+
 // Pattern is a sequence of LightState to play on blink(1).
 type Pattern struct {
 	StartPosition uint          // Loop start position, inclusive

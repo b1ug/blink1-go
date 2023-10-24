@@ -186,11 +186,11 @@ func (c *Controller) LoadPattern(posStart, posEnd uint, states []LightState) err
 }
 
 // ReadPattern reads the current pattern in the device's RAM.
-func (c *Controller) ReadPattern() ([]LightState, error) {
+func (c *Controller) ReadPattern() (StateSequence, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	var ls []LightState
+	var ls StateSequence
 	for pos, posMax := uint(0), getMaxPattern(c.dev.gen); pos < posMax; pos++ {
 		var st DeviceLightState
 		if err := retryWorkload(func() (ie error) {
