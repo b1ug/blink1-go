@@ -68,6 +68,10 @@ var (
 	RainbowColors = []color.Color{ColorRed, ColorOrange, ColorYellow, ColorGreen, ColorCyan, ColorBlue, ColorViolet}
 )
 
+var colorNames = []string{
+	"apricot", "aqua", "beige", "black", "blue", "bronze", "brown", "cyan", "fuchsia", "gold", "gray", "green", "grey", "indigo", "lavender", "lime", "magenta", "maroon", "mint", "navy", "olive", "orange", "peach", "pink", "plum", "purple", "red", "scarlet", "silver", "teal", "violet", "white", "yellow",
+}
+
 var nameColorMap = map[string]color.Color{
 	"apricot":  ColorApricot,
 	"aqua":     ColorCyan,
@@ -102,4 +106,37 @@ var nameColorMap = map[string]color.Color{
 	"violet":   ColorViolet,
 	"white":    ColorWhite,
 	"yellow":   ColorYellow,
+}
+
+var hexNameMap = map[string]string{
+	"#000000": "black",
+	"#000080": "navy",
+	"#0000FF": "blue",
+	"#008000": "lime",
+	"#008080": "teal",
+	"#00FF00": "green",
+	"#00FFFF": "cyan",
+	"#16982B": "mint",
+	"#4B0082": "indigo",
+	"#800000": "maroon",
+	"#800080": "purple",
+	"#8000FF": "violet",
+	"#808000": "olive",
+	"#808080": "gray",
+	"#8E4585": "plum",
+	"#A52A2A": "brown",
+	"#C0C0C0": "silver",
+	"#CD7F32": "bronze",
+	"#E6E6FA": "lavender",
+	"#F5F5DC": "beige",
+	"#FBCEB1": "apricot",
+	"#FF0000": "red",
+	"#FF00FF": "magenta",
+	"#FF2400": "scarlet",
+	"#FFA500": "orange",
+	"#FFC0CB": "pink",
+	"#FFD700": "gold",
+	"#FFE5B4": "peach",
+	"#FFFF00": "yellow",
+	"#FFFFFF": "white",
 }

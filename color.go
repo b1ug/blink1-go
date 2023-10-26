@@ -45,10 +45,10 @@ var presetColorMap = map[string]color.Color{
 }
 
 var (
-	nameOnce   sync.Once
-	colorNames []string
-	hexNameMap map[string]string
-	emptyStr   string
+	nameOnce sync.Once
+	// colorNames []string
+	// hexNameMap map[string]string
+	emptyStr string
 )
 
 func initNames() {
