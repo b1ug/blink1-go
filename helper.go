@@ -52,3 +52,10 @@ func NewLightStateHSB(h, s, b float64, fadeTime time.Duration, ledN LEDIndex) Li
 		FadeTime: fadeTime,
 	}
 }
+
+// HSBToRGB converts HSB to 8-bit RGB values.
+// The hue is in degrees [0, 360], saturation and brightness/value are percent in the range [0, 100].
+// Values outside of these ranges will be clamped.
+func HSBToRGB(hue, sat, bright float64) (red, green, blue uint8) {
+	return convHSBToRGB(hue, sat, bright)
+}
