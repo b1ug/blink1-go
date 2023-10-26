@@ -65,6 +65,41 @@ func ExampleController_ReadColor() {
 	}
 }
 
+// This example illustrates how to generate a state sequence for Hawaiian rainbow on the blink(1) device, looping it thrice, and pausing until the execution completes.
+func ExampleController_PlayPatternBlocking() {
+	// build a rainbow sequence with 2 states for each color, one for fade in and one for maintain
+	seq := make(b1.StateSequence, len(b1.RainbowColors)*2)
+	for i, cl := range b1.RainbowColors {
+		st := b1.NewLightState(cl, 300*time.Millisecond, b1.LEDAll)
+		seq[i*2] = st
+		seq[i*2+1] = st
+	}
+	pat := b1.Pattern{
+		StartPosition: 0,
+		EndPosition:   uint(seq.Length() - 1),
+		RepeatTimes:   3,
+		Sequence:      seq,
+	}
+
+	// open the device and play the pattern
+	c, err := b1.OpenNextController()
+	if err != nil {
+		panic(err)
+	}
+	defer c.Close()
+
+	c.PlayPatternBlocking(pat)
+
+	// turn off all LEDs
+	c.StopPlaying()
+}
+
+// This example shows how to get a random color.
+func ExampleRandomColor() {
+	cl := b1.RandomColor()
+	fmt.Println(cl)
+}
+
 // This example shows how to parse a title query.
 func ExampleParseTitle() {
 	t, err := b1.ParseTitle("title: Hawaiian Rainbow")
@@ -99,33 +134,4 @@ func ExampleParseStateQuery() {
 
 	// Output:
 	// 🎨(color=#0000FF led=1 fade=1.5s)
-}
-
-// This example illustrates how to generate a state sequence for Hawaiian rainbow on the blink(1) device, looping it thrice, and pausing until the execution completes.
-func ExampleController_PlayPatternBlocking() {
-	// build a rainbow sequence with 2 states for each color, one for fade in and one for maintain
-	seq := make(b1.StateSequence, len(b1.RainbowColors)*2)
-	for i, cl := range b1.RainbowColors {
-		st := b1.NewLightState(cl, 300*time.Millisecond, b1.LEDAll)
-		seq[i*2] = st
-		seq[i*2+1] = st
-	}
-	pat := b1.Pattern{
-		StartPosition: 0,
-		EndPosition:   uint(seq.Length() - 1),
-		RepeatTimes:   3,
-		Sequence:      seq,
-	}
-
-	// open the device and play the pattern
-	c, err := b1.OpenNextController()
-	if err != nil {
-		panic(err)
-	}
-	defer c.Close()
-
-	c.PlayPatternBlocking(pat)
-
-	// turn off all LEDs
-	c.StopPlaying()
 }
