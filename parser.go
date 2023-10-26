@@ -61,6 +61,7 @@ var (
 	emptyStr   string
 	nameOnce   sync.Once
 	colorNames []string
+	hexNameMap map[string]string
 
 	errNoTitleMatch  = errors.New("b1: no title match")
 	errNoRepeatMatch = errors.New("b1: no repeat times match")
@@ -105,8 +106,10 @@ func initRegex() {
 
 func initNames() {
 	colorNames = make([]string, 0, len(colorMap))
-	for k := range colorMap {
-		colorNames = append(colorNames, k)
+	hexNameMap = make(map[string]string, len(colorMap))
+	for name, col := range colorMap {
+		colorNames = append(colorNames, name)
+		hexNameMap[convColorToHex(col)] = name
 	}
 	sort.Strings(colorNames)
 }
@@ -118,9 +121,30 @@ func GetColorByName(name string) (cl color.Color, found bool) {
 	return
 }
 
+// GetNameByColor returns the name corresponding to the given color from the preset color map.
+// If the color is found, it returns the name and true.
+// If the color is not found, it returns the hex string and false.
+func GetNameByColor(cl color.Color) (name string, found bool) {
+	// init name maps
+	nameOnce.Do(initNames)
+	// check if color is in map
+	if name, ok := hexNameMap[convColorToHex(cl)]; ok {
+		return name, true
+	}
+	return convColorToHex(cl), false
+}
+
+// GetNameOrHexByColor returns the name corresponding to the given color from the preset color map, or the hex string if the color is not found.
+func GetNameOrHexByColor(cl color.Color) string {
+	name, _ := GetNameByColor(cl)
+	return name
+}
+
 // GetColorNames returns the color names from the preset color map.
 func GetColorNames() []string {
+	// init name maps
 	nameOnce.Do(initNames)
+	// copy name slice
 	cls := make([]string, len(colorNames))
 	copy(cls, colorNames)
 	return cls
