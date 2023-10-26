@@ -11,42 +11,6 @@ import (
 	b1 "github.com/b1ug/blink1-go"
 )
 
-func TestHSBToRGB(t *testing.T) {
-	type hsb struct {
-		hue, saturation, brightness float64
-	}
-
-	type rgb struct {
-		r, g, b uint8
-	}
-	tests := []struct {
-		name     string
-		hsbValue hsb
-		rgbValue rgb
-	}{
-		{"Black", hsb{0, 0, 0}, rgb{0, 0, 0}},
-		{"White", hsb{0, 0, 100}, rgb{255, 255, 255}},
-		{"Red", hsb{0, 100, 100}, rgb{255, 0, 0}},
-		{"Green", hsb{120, 100, 100}, rgb{0, 255, 0}},
-		{"Blue", hsb{240, 100, 100}, rgb{0, 0, 255}},
-		{"Yellow", hsb{60, 100, 100}, rgb{255, 255, 0}},
-		{"Cyan", hsb{180, 100, 100}, rgb{0, 255, 255}},
-		{"Magenta", hsb{300, 100, 100}, rgb{255, 0, 255}},
-		{"Grey", hsb{0, 0, 50}, rgb{128, 128, 128}},
-		{"Violet", hsb{270, 100, 100}, rgb{128, 0, 255}},
-		{"No Saturation", hsb{270, 0, 50}, rgb{128, 128, 128}},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			r, g, b := b1.HSBToRGB(tc.hsbValue.hue, tc.hsbValue.saturation, tc.hsbValue.brightness)
-			if r != tc.rgbValue.r || g != tc.rgbValue.g || b != tc.rgbValue.b {
-				t.Errorf("Expected: %v, got: R:%v, G:%v, B:%v", tc.rgbValue, r, g, b)
-			}
-		})
-	}
-}
-
 func TestPreload(t *testing.T) {
 	st := time.Now()
 	b1.Preload()
@@ -300,4 +264,39 @@ func TestSerializeStateSequence(t *testing.T) {
 		t.Errorf("%T.MarshalText() got result = %v, want %v", sc, string(t3), r)
 	}
 	t.Logf("%v %T.MarshalText() = %v", sc, sc, string(t3))
+}
+
+func TestHSBToRGB(t *testing.T) {
+	type hsb struct {
+		hue, saturation, brightness float64
+	}
+	type rgb struct {
+		r, g, b uint8
+	}
+	tests := []struct {
+		name     string
+		hsbValue hsb
+		rgbValue rgb
+	}{
+		{"Black", hsb{0, 0, 0}, rgb{0, 0, 0}},
+		{"White", hsb{0, 0, 100}, rgb{255, 255, 255}},
+		{"Red", hsb{0, 100, 100}, rgb{255, 0, 0}},
+		{"Green", hsb{120, 100, 100}, rgb{0, 255, 0}},
+		{"Blue", hsb{240, 100, 100}, rgb{0, 0, 255}},
+		{"Yellow", hsb{60, 100, 100}, rgb{255, 255, 0}},
+		{"Cyan", hsb{180, 100, 100}, rgb{0, 255, 255}},
+		{"Magenta", hsb{300, 100, 100}, rgb{255, 0, 255}},
+		{"Grey", hsb{0, 0, 50}, rgb{128, 128, 128}},
+		{"Violet", hsb{270, 100, 100}, rgb{128, 0, 255}},
+		{"No Saturation", hsb{270, 0, 50}, rgb{128, 128, 128}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r, g, b := b1.HSBToRGB(tc.hsbValue.hue, tc.hsbValue.saturation, tc.hsbValue.brightness)
+			if r != tc.rgbValue.r || g != tc.rgbValue.g || b != tc.rgbValue.b {
+				t.Errorf("Expected: %v, got: R:%v, G:%v, B:%v", tc.rgbValue, r, g, b)
+			}
+		})
+	}
 }

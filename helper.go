@@ -1,7 +1,10 @@
 package blink1
 
 import (
+	"errors"
+	"fmt"
 	"image/color"
+	"strings"
 	"time"
 
 	hid "github.com/b1ug/gid"
@@ -66,4 +69,63 @@ func NewLightStateHSB(h, s, b float64, fadeTime time.Duration, ledN LEDIndex) Li
 // Values outside of these ranges will be clamped.
 func HSBToRGB(hue, sat, bright float64) (red, green, blue uint8) {
 	return convHSBToRGB(hue, sat, bright)
+}
+
+// ColorToHex converts color.Color to hex string with leading #.
+func ColorToHex(cl color.Color) string {
+	return convColorToHex(cl)
+}
+
+// HexToColor converts hex string to color.Color. The hex string can be in the format of #RRGGBB or #RGB.
+func HexToColor(hex string) (color.Color, error) {
+	if len(hex) < 3 {
+		return nil, errors.New("invalid hex: too short")
+	}
+	// remove leading #
+	if strings.HasPrefix(hex, "#") {
+		hex = hex[1:]
+	}
+	// parse
+	var r, g, b uint8
+	switch len(hex) {
+	case 3:
+		n, err := fmt.Sscanf(hex, "%1X%1X%1X", &r, &g, &b)
+		if err != nil || n != 3 {
+			return nil, fmt.Errorf("invalid #RGB hex: %s - %w", hex, err)
+		}
+		return color.RGBA{R: r * 0x11, G: g * 0x11, B: b * 0x11, A: 0xff}, nil
+	case 6:
+		n, err := fmt.Sscanf(hex, "%02X%02X%02X", &r, &g, &b)
+		if err != nil || n != 3 {
+			return nil, fmt.Errorf("invalid #RRGGBB hex: %s - %w", hex, err)
+		}
+		return color.RGBA{R: r, G: g, B: b, A: 0xff}, nil
+	default:
+		return nil, fmt.Errorf("invalid hex format: %s", hex)
+	}
+}
+
+// RGBToColor converts 8-bit RGB values to color.Color.
+func RGBToColor(r, g, b uint8) color.Color {
+	return convRGBToColor(r, g, b)
+}
+
+// ColorToRGB converts color.Color to 8-bit RGB values.
+func ColorToRGB(cl color.Color) (r, g, b uint8) {
+	return convColorToRGB(cl)
+}
+
+// HexToRGB converts hex string to 8-bit RGB values.
+func HexToRGB(hex string) (r, g, b uint8, err error) {
+	cl, err := HexToColor(hex)
+	if err != nil {
+		return
+	}
+	r, g, b = convColorToRGB(cl)
+	return
+}
+
+// RGBToHex converts 8-bit RGB values to hex string with leading #.
+func RGBToHex(r, g, b uint8) string {
+	return fmt.Sprintf("#%02X%02X%02X", r, g, b)
 }
