@@ -72,7 +72,8 @@ var colorNames = []string{
 	"apricot", "aqua", "beige", "black", "blue", "bronze", "brown", "cyan", "fuchsia", "gold", "gray", "green", "grey", "indigo", "lavender", "lime", "magenta", "maroon", "mint", "navy", "olive", "orange", "peach", "pink", "plum", "purple", "red", "scarlet", "silver", "teal", "violet", "white", "yellow",
 }
 
-var nameColorMap = map[string]color.Color{
+// presetColorMap is a map of all supported preset color names to color values.
+var presetColorMap = map[string]color.Color{
 	"apricot":  ColorApricot,
 	"aqua":     ColorCyan,
 	"beige":    ColorBeige,
