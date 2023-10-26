@@ -65,6 +65,30 @@ func ExampleController_ReadColor() {
 	}
 }
 
+// This example shows how to parse a title query.
+func ExampleParseTitle() {
+	t, err := b1.ParseTitle("title: Hawaiian Rainbow")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(t)
+
+	// Output:
+	// Hawaiian Rainbow
+}
+
+// This example shows how to parse a repeat times query.
+func ExampleParseRepeatTimes() {
+	rt, err := b1.ParseRepeatTimes("Repeat 3 times")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(rt)
+
+	// Output:
+	// 3
+}
+
 // This example shows how to parse a state query.
 func ExampleParseStateQuery() {
 	st, err := b1.ParseStateQuery("Fade the first LED to blue in 1.5 seconds.")
@@ -78,7 +102,7 @@ func ExampleParseStateQuery() {
 }
 
 // This example illustrates how to generate a state sequence for Hawaiian rainbow on the blink(1) device, looping it thrice, and pausing until the execution completes.
-func ExampleStateSequence_Rainbow() {
+func ExampleController_PlayPatternBlocking() {
 	// build a rainbow sequence with 2 states for each color, one for fade in and one for maintain
 	seq := make(b1.StateSequence, len(b1.RainbowColors)*2)
 	for i, cl := range b1.RainbowColors {
