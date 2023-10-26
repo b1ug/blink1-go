@@ -117,7 +117,8 @@ func initNames() {
 // GetColorByName returns the color corresponding to the given name from the preset color map.
 // If the color is found, it returns the color and true, otherwise it returns nil and false.
 func GetColorByName(name string) (cl color.Color, found bool) {
-	cl, found = colorMap[name]
+	n := strings.TrimSpace(strings.ToLower(name))
+	cl, found = colorMap[n]
 	return
 }
 
