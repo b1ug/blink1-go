@@ -61,7 +61,7 @@ func ExampleController_ReadColor() {
 	if cl, err := c.ReadColor(b1.LED1); err != nil {
 		panic(err)
 	} else {
-		fmt.Println(cl)
+		fmt.Println(b1.GetNameOrHexByColor(cl))
 	}
 }
 
@@ -97,7 +97,7 @@ func ExampleController_PlayPatternBlocking() {
 // This example shows how to get a random color.
 func ExampleRandomColor() {
 	cl := b1.RandomColor()
-	fmt.Println(cl)
+	fmt.Println(b1.GetNameOrHexByColor(cl))
 }
 
 // This example shows how to parse a title query.
