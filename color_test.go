@@ -6,12 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/b1ug/blink1-go"
+	b1 "github.com/b1ug/blink1-go"
 )
 
 func TestGetColorNames(t *testing.T) {
-	ns1 := blink1.GetColorNames()
-	ns2 := blink1.GetColorNames()
+	ns1 := b1.GetColorNames()
+	ns2 := b1.GetColorNames()
 
 	if !reflect.DeepEqual(ns1, ns2) {
 		t.Errorf("GetColorNames() should be consistent, got %v and %v", ns1, ns2)
@@ -25,7 +25,7 @@ func TestGetColorNames(t *testing.T) {
 
 	ns1[0] = "foo"
 	ns2[0] = "bar"
-	ns3 := blink1.GetColorNames()
+	ns3 := b1.GetColorNames()
 	if ns3[0] != "apricot" {
 		t.Errorf("GetColorNames() should not be mutable, got %v", ns3[0])
 	}
@@ -68,7 +68,7 @@ func TestGetColorByName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.query, func(t *testing.T) {
-			got, found := blink1.GetColorByName(tt.query)
+			got, found := b1.GetColorByName(tt.query)
 			if found != tt.found || (got != tt.want && tt.found) {
 				t.Errorf("GetColorByName(%q) got = (%v, %t), want = (%v, %t)", tt.query, got, found, tt.want, tt.found)
 			}
@@ -114,7 +114,7 @@ func TestGetNameByColor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.want, func(t *testing.T) {
-			got, found := blink1.GetNameByColor(tt.col)
+			got, found := b1.GetNameByColor(tt.col)
 			if found != tt.found || (got != tt.want && tt.found) {
 				t.Errorf("GetNameByColor(%v) got = (%s, %t), want = (%s, %t)", tt.col, got, found, tt.want, tt.found)
 			}
@@ -158,7 +158,7 @@ func TestGetNameOrHexByColor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.want, func(t *testing.T) {
-			got := blink1.GetNameOrHexByColor(tt.col)
+			got := b1.GetNameOrHexByColor(tt.col)
 			if got != tt.want {
 				t.Errorf("GetNameOrHexByColor(%v) got = %s, want = %s", tt.col, got, tt.want)
 			}
@@ -170,7 +170,7 @@ func TestRandomColor(t *testing.T) {
 	times := 100
 	colors := make([]color.Color, times)
 	for i := 0; i < times; i++ {
-		colors[i] = blink1.RandomColor()
+		colors[i] = b1.RandomColor()
 	}
 	counts := make(map[string]int)
 	for _, c := range colors {
