@@ -9,6 +9,14 @@ import (
 
 // methods in this file serve as public helper functions
 
+// Preload triggers the initialization of the parsers and color names.
+// It's optional to call this function, and it's safe to call it multiple times.
+// Currently there is no noticeable performance gain from calling this function before using other APIs.
+func Preload() {
+	regexOnce.Do(initRegex)
+	nameOnce.Do(initNames)
+}
+
 // IsRunningOnSupportedOS returns true if the current OS is supported by underlying HID library.
 func IsRunningOnSupportedOS() bool {
 	return hid.Supported()

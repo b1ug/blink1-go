@@ -47,6 +47,16 @@ func TestHSBToRGB(t *testing.T) {
 	}
 }
 
+func TestPreload(t *testing.T) {
+	st := time.Now()
+	b1.Preload()
+	ep := time.Since(st)
+	if ep > 100*time.Millisecond {
+		t.Errorf("Preload() took too long: %v", ep)
+	}
+	t.Logf("Preload() took %v", ep)
+}
+
 func TestIsRunningOnSupportedOS(t *testing.T) {
 	want := true
 	if got := b1.IsRunningOnSupportedOS(); got != want {
