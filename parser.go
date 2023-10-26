@@ -5,48 +5,11 @@ import (
 	"fmt"
 	"image/color"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
-
-var colorMap = map[string]color.Color{
-	"apricot":  ColorApricot,
-	"aqua":     ColorCyan,
-	"beige":    ColorBeige,
-	"black":    ColorBlack,
-	"blue":     ColorBlue,
-	"bronze":   ColorBronze,
-	"brown":    ColorBrown,
-	"cyan":     ColorCyan,
-	"fuchsia":  ColorMagenta,
-	"gold":     ColorGold,
-	"gray":     ColorGray,
-	"green":    ColorGreen,
-	"grey":     ColorGray,
-	"indigo":   ColorIndigo,
-	"lavender": ColorLavender,
-	"lime":     ColorLime,
-	"magenta":  ColorMagenta,
-	"maroon":   ColorMaroon,
-	"mint":     ColorMint,
-	"navy":     ColorNavy,
-	"olive":    ColorOlive,
-	"orange":   ColorOrange,
-	"peach":    ColorPeach,
-	"pink":     ColorPink,
-	"plum":     ColorPlum,
-	"purple":   ColorPurple,
-	"red":      ColorRed,
-	"scarlet":  ColorScarlet,
-	"silver":   ColorSilver,
-	"teal":     ColorTeal,
-	"violet":   ColorViolet,
-	"white":    ColorWhite,
-	"yellow":   ColorYellow,
-}
 
 var (
 	regexOnce         sync.Once
@@ -57,11 +20,6 @@ var (
 	colorRegexOrder   []string
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
-
-	nameOnce   sync.Once
-	colorNames []string
-	hexNameMap map[string]string
-	emptyStr   string
 
 	errNoTitleMatch  = errors.New("b1: no title match")
 	errNoRepeatMatch = errors.New("b1: no repeat times match")
@@ -78,8 +36,8 @@ func initRegex() {
 	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
 
 	// for colors
-	colorWords := make([]string, 0, len(colorMap))
-	for k := range colorMap {
+	colorWords := make([]string, 0, len(presetColorMap))
+	for k := range presetColorMap {
 		colorWords = append(colorWords, k)
 	}
 	colorRegexPats["name"] = regexp.MustCompile(fmt.Sprintf(`\b(%s)\b`, strings.Join(colorWords, "|")))
@@ -102,53 +60,6 @@ func initRegex() {
 	ledIdxRegexPats[1] = regexp.MustCompile(`\b(?:top|first|1st)\s+(led|light)\b`)
 	ledIdxRegexPats[2] = regexp.MustCompile(`\b(?:btm|bottom|second|2nd)\s+(led|light)\b`)
 	ledIdxRegexPats[12] = regexp.MustCompile(`\b(led|light)[:#=\s]*([012]|top|bottom|btm|all|both|zero|one|two)\b`)
-}
-
-func initNames() {
-	colorNames = make([]string, 0, len(colorMap))
-	hexNameMap = make(map[string]string, len(colorMap))
-	for name, col := range colorMap {
-		colorNames = append(colorNames, name)
-		hexNameMap[convColorToHex(col)] = name
-	}
-	sort.Strings(colorNames)
-}
-
-// GetColorByName returns the color corresponding to the given name from the preset color map.
-// If the color is found, it returns the color and true, otherwise it returns nil and false.
-func GetColorByName(name string) (cl color.Color, found bool) {
-	n := strings.TrimSpace(strings.ToLower(name))
-	cl, found = colorMap[n]
-	return
-}
-
-// GetNameByColor returns the name corresponding to the given color from the preset color map.
-// If the color is found, it returns the name and true.
-// If the color is not found, it returns the hex string and false.
-func GetNameByColor(cl color.Color) (name string, found bool) {
-	// init name maps
-	nameOnce.Do(initNames)
-	// check if color is in map
-	if name, ok := hexNameMap[convColorToHex(cl)]; ok {
-		return name, true
-	}
-	return convColorToHex(cl), false
-}
-
-// GetNameOrHexByColor returns the name corresponding to the given color from the preset color map, or the hex string if the color is not found.
-func GetNameOrHexByColor(cl color.Color) string {
-	name, _ := GetNameByColor(cl)
-	return name
-}
-
-// GetColorNames returns the color names from the preset color map.
-func GetColorNames() []string {
-	// init name maps
-	nameOnce.Do(initNames)
-	// copy name slice
-	cls := make([]string, len(colorNames))
-	copy(cls, colorNames)
-	return cls
 }
 
 // ParseTitle parses the labeled title or topic or idea string from the query string. It returns the title or an error if no title is found.
@@ -284,7 +195,7 @@ func parseColorQuery(query string) (color.Color, error) {
 		val := m[1]
 		switch key {
 		case "name":
-			return colorMap[val], nil
+			return presetColorMap[val], nil
 		case "on":
 			return ColorWhite, nil
 		case "off":

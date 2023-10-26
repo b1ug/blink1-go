@@ -131,13 +131,6 @@ func convColorToHex(c color.Color) string {
 	return fmt.Sprintf("#%02X%02X%02X", r>>8, g>>8, b>>8)
 }
 
-// convHexToColor converts hex string to color.Color.
-func convHexToColor(s string) color.Color {
-	var r, g, b uint8
-	fmt.Sscanf(s, "#%02X%02X%02X", &r, &g, &b)
-	return color.RGBA{R: r, G: g, B: b, A: 0xff}
-}
-
 // convDurationToActual converts time.Duration to actual time.Duration on the device.
 func convDurationToActual(dur time.Duration) time.Duration {
 	ms := uint(dur.Milliseconds())

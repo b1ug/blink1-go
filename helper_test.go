@@ -11,63 +11,20 @@ import (
 	b1 "github.com/b1ug/blink1-go"
 )
 
-func TestHSBToRGB(t *testing.T) {
-	type hsb struct {
-		hue, saturation, brightness float64
+func TestPreload(t *testing.T) {
+	st := time.Now()
+	b1.Preload()
+	ep := time.Since(st)
+	if ep > 100*time.Millisecond {
+		t.Errorf("Preload() took too long: %v", ep)
 	}
-
-	type rgb struct {
-		r, g, b uint8
-	}
-	tests := []struct {
-		name     string
-		hsbValue hsb
-		rgbValue rgb
-	}{
-		{"Black", hsb{0, 0, 0}, rgb{0, 0, 0}},
-		{"White", hsb{0, 0, 100}, rgb{255, 255, 255}},
-		{"Red", hsb{0, 100, 100}, rgb{255, 0, 0}},
-		{"Green", hsb{120, 100, 100}, rgb{0, 255, 0}},
-		{"Blue", hsb{240, 100, 100}, rgb{0, 0, 255}},
-		{"Yellow", hsb{60, 100, 100}, rgb{255, 255, 0}},
-		{"Cyan", hsb{180, 100, 100}, rgb{0, 255, 255}},
-		{"Magenta", hsb{300, 100, 100}, rgb{255, 0, 255}},
-		{"Grey", hsb{0, 0, 50}, rgb{128, 128, 128}},
-		{"Violet", hsb{270, 100, 100}, rgb{128, 0, 255}},
-		{"No Saturation", hsb{270, 0, 50}, rgb{128, 128, 128}},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			r, g, b := b1.HSBToRGB(tc.hsbValue.hue, tc.hsbValue.saturation, tc.hsbValue.brightness)
-			if r != tc.rgbValue.r || g != tc.rgbValue.g || b != tc.rgbValue.b {
-				t.Errorf("Expected: %v, got: R:%v, G:%v, B:%v", tc.rgbValue, r, g, b)
-			}
-		})
-	}
+	t.Logf("Preload() took %v", ep)
 }
 
 func TestIsRunningOnSupportedOS(t *testing.T) {
 	want := true
 	if got := b1.IsRunningOnSupportedOS(); got != want {
 		t.Errorf("IsRunningOnSupportedOS() = %v, want %v", got, want)
-	}
-}
-
-func TestRandomColor(t *testing.T) {
-	times := 100
-	colors := make([]color.Color, times)
-	for i := 0; i < times; i++ {
-		colors[i] = b1.RandomColor()
-	}
-	counts := make(map[string]int)
-	for _, c := range colors {
-		r, g, b, _ := c.RGBA()
-		s := fmt.Sprintf("#%02X%02X%02X", r>>8, g>>8, b>>8)
-		counts[s]++
-	}
-	if lc := len(counts); lc <= int(float64(times)*0.9) {
-		t.Errorf("RandomColor(*) = %v, want different colors", lc)
 	}
 }
 
@@ -307,4 +264,369 @@ func TestSerializeStateSequence(t *testing.T) {
 		t.Errorf("%T.MarshalText() got result = %v, want %v", sc, string(t3), r)
 	}
 	t.Logf("%v %T.MarshalText() = %v", sc, sc, string(t3))
+}
+
+func TestHSBToRGB(t *testing.T) {
+	type hsb struct {
+		hue, saturation, brightness float64
+	}
+	type rgb struct {
+		r, g, b uint8
+	}
+	tests := []struct {
+		name     string
+		hsbValue hsb
+		rgbValue rgb
+	}{
+		{"Black", hsb{0, 0, 0}, rgb{0, 0, 0}},
+		{"White", hsb{0, 0, 100}, rgb{255, 255, 255}},
+		{"Red", hsb{0, 100, 100}, rgb{255, 0, 0}},
+		{"Green", hsb{120, 100, 100}, rgb{0, 255, 0}},
+		{"Blue", hsb{240, 100, 100}, rgb{0, 0, 255}},
+		{"Yellow", hsb{60, 100, 100}, rgb{255, 255, 0}},
+		{"Cyan", hsb{180, 100, 100}, rgb{0, 255, 255}},
+		{"Magenta", hsb{300, 100, 100}, rgb{255, 0, 255}},
+		{"Grey", hsb{0, 0, 50}, rgb{128, 128, 128}},
+		{"Violet", hsb{270, 100, 100}, rgb{128, 0, 255}},
+		{"No Saturation", hsb{270, 0, 50}, rgb{128, 128, 128}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r, g, b := b1.HSBToRGB(tc.hsbValue.hue, tc.hsbValue.saturation, tc.hsbValue.brightness)
+			if r != tc.rgbValue.r || g != tc.rgbValue.g || b != tc.rgbValue.b {
+				t.Errorf("Expected: %v, got: R:%v, G:%v, B:%v", tc.rgbValue, r, g, b)
+			}
+		})
+	}
+}
+
+func TestColorToHex(t *testing.T) {
+	tests := []struct {
+		col  color.Color
+		want string
+	}{
+		{
+			col:  color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+			want: "#FF0000",
+		},
+		{
+			col:  color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+			want: "#AABBCC",
+		},
+		{
+			col:  color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0x0},
+			want: "#AABBCC",
+		},
+		{
+			col:  color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+			want: "#010203",
+		},
+		{
+			col:  color.RGBA{R: 0x80, G: 0x0, B: 0x81, A: 0xff},
+			want: "#800081",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := b1.ColorToHex(tt.col)
+			if got != tt.want {
+				t.Errorf("ColorToHex(%v) got = %s, want = %s", tt.col, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHexToColor(t *testing.T) {
+	tests := []struct {
+		hex     string
+		want    color.Color
+		wantErr bool
+	}{
+		{
+			hex:  "#000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "#000000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "000000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "#FF1234",
+			want: color.RGBA{R: 0xff, G: 0x12, B: 0x34, A: 0xff},
+		},
+		{
+			hex:  "ff1234",
+			want: color.RGBA{R: 0xff, G: 0x12, B: 0x34, A: 0xff},
+		},
+		{
+			hex:  "#AABBCC",
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			hex:  "#aabbcc",
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			hex:  "#abc",
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			hex:  "#010203",
+			want: color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+		},
+		{
+			hex:  "#123",
+			want: color.RGBA{R: 0x11, G: 0x22, B: 0x33, A: 0xff},
+		},
+		{
+			hex:     "#FF1234 ",
+			wantErr: true,
+		},
+		{
+			hex:     " #FF1234",
+			wantErr: true,
+		},
+		{
+			hex:     "#FF12345",
+			wantErr: true,
+		},
+		{
+			hex:     "#12",
+			wantErr: true,
+		},
+		{
+			hex:     "#1234",
+			wantErr: true,
+		},
+		{
+			hex:     "X123",
+			wantErr: true,
+		},
+		{
+			hex:     "#abg",
+			wantErr: true,
+		},
+		{
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.hex, func(t *testing.T) {
+			got, err := b1.HexToColor(tt.hex)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HexToColor(%v) error = %v, wantErr = %v", tt.hex, err, tt.wantErr)
+				return
+			}
+			if err == nil && got != tt.want {
+				t.Errorf("HexToColor(%v) got = %v, want = %v", tt.hex, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRGBToColor(t *testing.T) {
+	tests := []struct {
+		r, g, b uint8
+		want    color.Color
+	}{
+		{
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			r:    0xff,
+			g:    0x0,
+			b:    0x0,
+			want: color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			r:    0xaa,
+			g:    0xbb,
+			b:    0xcc,
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			r:    0x1,
+			g:    0x2,
+			b:    0x3,
+			want: color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%v", tt.want), func(t *testing.T) {
+			got := b1.RGBToColor(tt.r, tt.g, tt.b)
+			if got != tt.want {
+				t.Errorf("RGBToColor(%v, %v, %v) got = %v, want = %v", tt.r, tt.g, tt.b, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestColorToRGB(t *testing.T) {
+	tests := []struct {
+		col                 color.Color
+		wantR, wantG, wantB uint8
+	}{
+		{
+			col:   color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+			wantR: 0x0,
+			wantG: 0x0,
+			wantB: 0x0,
+		},
+		{
+			col:   color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+			wantR: 0xff,
+			wantG: 0x0,
+			wantB: 0x0,
+		},
+		{
+			col:   color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+			wantR: 0xaa,
+			wantG: 0xbb,
+			wantB: 0xcc,
+		},
+		{
+			col:   color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+			wantR: 0x1,
+			wantG: 0x2,
+			wantB: 0x3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%v", tt.col), func(t *testing.T) {
+			gotR, gotG, gotB := b1.ColorToRGB(tt.col)
+			if gotR != tt.wantR || gotG != tt.wantG || gotB != tt.wantB {
+				t.Errorf("ColorToRGB(%v) got = (%v, %v, %v), want = (%v, %v, %v)", tt.col, gotR, gotG, gotB, tt.wantR, tt.wantG, tt.wantB)
+			}
+		})
+	}
+}
+
+func TestHexToRGB(t *testing.T) {
+	tests := []struct {
+		hex                 string
+		wantR, wantG, wantB uint8
+		wantErr             bool
+	}{
+		{
+			hex:     "#000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "#000000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "000000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "#FF1234",
+			wantR:   0xff,
+			wantG:   0x12,
+			wantB:   0x34,
+			wantErr: false,
+		},
+		{
+			hex:     "ff1234",
+			wantR:   0xff,
+			wantG:   0x12,
+			wantB:   0x34,
+			wantErr: false,
+		},
+		{
+			hex:     "#AABBCC",
+			wantR:   0xaa,
+			wantG:   0xbb,
+			wantB:   0xcc,
+			wantErr: false,
+		},
+		{
+			hex:     "#aabbcc",
+			wantR:   0xaa,
+			wantG:   0xbb,
+			wantB:   0xcc,
+			wantErr: false,
+		},
+		{
+			hex:     "hello!",
+			wantErr: true,
+		},
+		{
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.hex, func(t *testing.T) {
+			gotR, gotG, gotB, err := b1.HexToRGB(tt.hex)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HexToRGB(%v) error = %v, wantErr = %v", tt.hex, err, tt.wantErr)
+				return
+			}
+			if err == nil && (gotR != tt.wantR || gotG != tt.wantG || gotB != tt.wantB) {
+				t.Errorf("HexToRGB(%v) got = (%v, %v, %v), want = (%v, %v, %v)", tt.hex, gotR, gotG, gotB, tt.wantR, tt.wantG, tt.wantB)
+			}
+		})
+	}
+}
+
+func TestRGBToHex(t *testing.T) {
+	tests := []struct {
+		r, g, b uint8
+		want    string
+	}{
+		{
+			want: "#000000",
+		},
+		{
+			r:    0xff,
+			g:    0x0,
+			b:    0x0,
+			want: "#FF0000",
+		},
+		{
+			r:    0xaa,
+			g:    0xbb,
+			b:    0xcc,
+			want: "#AABBCC",
+		},
+		{
+			r:    0x1,
+			g:    0x2,
+			b:    0x3,
+			want: "#010203",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := b1.RGBToHex(tt.r, tt.g, tt.b)
+			if got != tt.want {
+				t.Errorf("RGBToHex(%v, %v, %v) got = %v, want = %v", tt.r, tt.g, tt.b, got, tt.want)
+			}
+		})
+	}
 }
