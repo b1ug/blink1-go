@@ -36,8 +36,8 @@ func initRegex() {
 	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
 
 	// for colors
-	colorWords := make([]string, 0, len(nameColorMap))
-	for k := range nameColorMap {
+	colorWords := make([]string, 0, len(presetColorMap))
+	for k := range presetColorMap {
 		colorWords = append(colorWords, k)
 	}
 	colorRegexPats["name"] = regexp.MustCompile(fmt.Sprintf(`\b(%s)\b`, strings.Join(colorWords, "|")))
@@ -195,7 +195,7 @@ func parseColorQuery(query string) (color.Color, error) {
 		val := m[1]
 		switch key {
 		case "name":
-			return nameColorMap[val], nil
+			return presetColorMap[val], nil
 		case "on":
 			return ColorWhite, nil
 		case "off":

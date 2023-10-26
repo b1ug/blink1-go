@@ -7,7 +7,8 @@ import (
 	"sync"
 )
 
-var nameColorMap = map[string]color.Color{
+// presetColorMap is a map of all supported preset color names to color values.
+var presetColorMap = map[string]color.Color{
 	"apricot":  ColorApricot,
 	"aqua":     ColorCyan,
 	"beige":    ColorBeige,
@@ -51,20 +52,30 @@ var (
 )
 
 func initNames() {
-	colorNames = make([]string, 0, len(nameColorMap))
-	hexNameMap = make(map[string]string, len(nameColorMap))
-	for name, col := range nameColorMap {
+	colorNames = make([]string, 0, len(presetColorMap))
+	hexNameMap = make(map[string]string, len(presetColorMap))
+	for name, col := range presetColorMap {
 		colorNames = append(colorNames, name)
 		hexNameMap[convColorToHex(col)] = name
 	}
 	sort.Strings(colorNames)
 }
 
+// GetColorNames returns the color names from the preset color map.
+func GetColorNames() []string {
+	// init name maps
+	nameOnce.Do(initNames)
+	// copy name slice
+	cls := make([]string, len(colorNames))
+	copy(cls, colorNames)
+	return cls
+}
+
 // GetColorByName returns the color corresponding to the given name from the preset color map.
 // If the color is found, it returns the color and true, otherwise it returns nil and false.
 func GetColorByName(name string) (cl color.Color, found bool) {
 	n := strings.TrimSpace(strings.ToLower(name))
-	cl, found = nameColorMap[n]
+	cl, found = presetColorMap[n]
 	return
 }
 
@@ -85,14 +96,4 @@ func GetNameByColor(cl color.Color) (name string, found bool) {
 func GetNameOrHexByColor(cl color.Color) string {
 	name, _ := GetNameByColor(cl)
 	return name
-}
-
-// GetColorNames returns the color names from the preset color map.
-func GetColorNames() []string {
-	// init name maps
-	nameOnce.Do(initNames)
-	// copy name slice
-	cls := make([]string, len(colorNames))
-	copy(cls, colorNames)
-	return cls
 }
