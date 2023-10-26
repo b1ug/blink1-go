@@ -218,7 +218,68 @@ func TestParseRepeatTimes(t *testing.T) {
 				return
 			}
 			if got != tt.times {
-				t.Errorf("ParseRepeatTimes(%q) got = %q, want = %q", tt.query, got, tt.times)
+				t.Errorf("ParseRepeatTimes(%q) got = %v, want = %v", tt.query, got, tt.times)
+			}
+		})
+	}
+}
+
+func TestParseColor(t *testing.T) {
+	tests := []struct {
+		query   string
+		want    color.Color
+		wantErr bool
+	}{
+		{
+			query: "#ff0000",
+			want:  color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			query: "#00FF00",
+			want:  color.RGBA{R: 0x0, G: 0xff, B: 0x0, A: 0xff},
+		},
+		{
+			query: "#abc",
+			want:  color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			query: "on",
+			want:  color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		},
+		{
+			query: "off",
+			want:  color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			query: "red",
+			want:  color.RGBA{R: 0xff, G: 0x00, B: 0x0, A: 0xff},
+		},
+		{
+			query: "BLUE",
+			want:  color.RGBA{R: 0x0, G: 0x0, B: 0xff, A: 0xff},
+		},
+		{
+			query: "rgb(12,34,56)",
+			want:  color.RGBA{R: 0x0c, G: 0x22, B: 0x38, A: 0xff},
+		},
+		{
+			query: "hsb(356, 64, 90)",
+			want:  color.RGBA{R: 0xe6, G: 0x53, B: 0x5c, A: 0xff},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			got, err := blink1.ParseColor(tt.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseColor(%q) error = %v, wantErr = %v", tt.query, err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ParseColor(%q) got = %v, want = %v", tt.query, got, tt.want)
 			}
 		})
 	}
@@ -602,8 +663,165 @@ func TestParseStateQuery(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParseStateQuery(%q) got = %q, want = %q", tt.query, got, tt.want)
+				t.Errorf("ParseStateQuery(%q) got = %v, want = %v", tt.query, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestGetColorByName(t *testing.T) {
+	tests := []struct {
+		query string
+		want  color.Color
+		found bool
+	}{
+		{
+			query: "red",
+			want:  color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+			found: true,
+		},
+		{
+			query: "BLUE",
+			want:  color.RGBA{R: 0x0, G: 0x0, B: 0xff, A: 0xff},
+			found: true,
+		},
+		{
+			query: "Yellow",
+			want:  color.RGBA{R: 0xff, G: 0xff, B: 0x0, A: 0xff},
+			found: true,
+		},
+		{
+			query: "\tpurple    ",
+			want:  color.RGBA{R: 0x80, G: 0x0, B: 0x80, A: 0xff},
+			found: true,
+		},
+		{
+			query: "none",
+			found: false,
+		},
+		{
+			query: "   ",
+			found: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			got, found := blink1.GetColorByName(tt.query)
+			if found != tt.found || (got != tt.want && tt.found) {
+				t.Errorf("GetColorByName(%q) got = (%v, %t), want = (%v, %t)", tt.query, got, found, tt.want, tt.found)
+			}
+		})
+	}
+}
+
+func TestGetNameByColor(t *testing.T) {
+	tests := []struct {
+		col   color.Color
+		want  string
+		found bool
+	}{
+		{
+			col:   color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+			want:  "red",
+			found: true,
+		},
+		{
+			col:   color.RGBA{R: 0x0, G: 0x0, B: 0xff, A: 0xff},
+			want:  "blue",
+			found: true,
+		},
+		{
+			col:   color.RGBA{R: 0xff, G: 0xff, B: 0x0, A: 0xff},
+			want:  "yellow",
+			found: true,
+		},
+		{
+			col:   color.RGBA{R: 0x80, G: 0x0, B: 0x80, A: 0xff},
+			want:  "purple",
+			found: true,
+		},
+		{
+			col:   color.RGBA{R: 0x80, G: 0x0, B: 0x80, A: 0x0},
+			want:  "purple",
+			found: true,
+		},
+		{
+			col:   color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+			found: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got, found := blink1.GetNameByColor(tt.col)
+			if found != tt.found || (got != tt.want && tt.found) {
+				t.Errorf("GetNameByColor(%v) got = (%s, %t), want = (%s, %t)", tt.col, got, found, tt.want, tt.found)
+			}
+		})
+	}
+}
+
+func TestGetNameOrHexByColor(t *testing.T) {
+	tests := []struct {
+		col  color.Color
+		want string
+	}{
+		{
+			col:  color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+			want: "red",
+		},
+		{
+			col:  color.RGBA{R: 0x0, G: 0x0, B: 0xff, A: 0xff},
+			want: "blue",
+		},
+		{
+			col:  color.RGBA{R: 0xff, G: 0xff, B: 0x0, A: 0xff},
+			want: "yellow",
+		},
+		{
+			col:  color.RGBA{R: 0x80, G: 0x0, B: 0x80, A: 0xff},
+			want: "purple",
+		},
+		{
+			col:  color.RGBA{R: 0x80, G: 0x0, B: 0x80, A: 0x0},
+			want: "purple",
+		},
+		{
+			col:  color.RGBA{R: 0x80, G: 0x0, B: 0x81, A: 0xff},
+			want: "#800081",
+		},
+		{
+			col:  color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+			want: "#010203",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := blink1.GetNameOrHexByColor(tt.col)
+			if got != tt.want {
+				t.Errorf("GetNameOrHexByColor(%v) got = %s, want = %s", tt.col, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetColorNames(t *testing.T) {
+	ns1 := blink1.GetColorNames()
+	ns2 := blink1.GetColorNames()
+
+	if !reflect.DeepEqual(ns1, ns2) {
+		t.Errorf("GetColorNames() should be consistent, got %v and %v", ns1, ns2)
+	}
+	if len(ns1) == 0 {
+		t.Errorf("GetColorNames() should return non-empty slice, got %v", ns1)
+	}
+	if ns1[0] != "apricot" {
+		t.Errorf("GetColorNames() should return apricot as first element, got %v", ns1[0])
+	}
+
+	ns1[0] = "foo"
+	ns2[0] = "bar"
+	ns3 := blink1.GetColorNames()
+	if ns3[0] != "apricot" {
+		t.Errorf("GetColorNames() should not be mutable, got %v", ns3[0])
 	}
 }

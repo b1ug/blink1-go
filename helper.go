@@ -101,9 +101,9 @@ func RandomColor() color.Color {
 	// hue between 0 and 360 to get a full range of colors
 	hue := rand(360)
 	// saturation between 50 and 100 to ensure a bright color
-	saturation := 50 + rand(50)
+	saturation := 50. + rand(50)
 	// max brightness for a bright color
-	brightness := 100.
+	brightness := 90. + rand(10)
 	// convert to RGB and return
 	return convRGBToColor(convHSBToRGB(hue, saturation, brightness))
 }

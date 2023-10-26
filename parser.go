@@ -58,9 +58,10 @@ var (
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
-	emptyStr   string
 	nameOnce   sync.Once
 	colorNames []string
+	hexNameMap map[string]string
+	emptyStr   string
 
 	errNoTitleMatch  = errors.New("b1: no title match")
 	errNoRepeatMatch = errors.New("b1: no repeat times match")
@@ -105,8 +106,10 @@ func initRegex() {
 
 func initNames() {
 	colorNames = make([]string, 0, len(colorMap))
-	for k := range colorMap {
-		colorNames = append(colorNames, k)
+	hexNameMap = make(map[string]string, len(colorMap))
+	for name, col := range colorMap {
+		colorNames = append(colorNames, name)
+		hexNameMap[convColorToHex(col)] = name
 	}
 	sort.Strings(colorNames)
 }
@@ -114,13 +117,35 @@ func initNames() {
 // GetColorByName returns the color corresponding to the given name from the preset color map.
 // If the color is found, it returns the color and true, otherwise it returns nil and false.
 func GetColorByName(name string) (cl color.Color, found bool) {
-	cl, found = colorMap[name]
+	n := strings.TrimSpace(strings.ToLower(name))
+	cl, found = colorMap[n]
 	return
+}
+
+// GetNameByColor returns the name corresponding to the given color from the preset color map.
+// If the color is found, it returns the name and true.
+// If the color is not found, it returns the hex string and false.
+func GetNameByColor(cl color.Color) (name string, found bool) {
+	// init name maps
+	nameOnce.Do(initNames)
+	// check if color is in map
+	if name, ok := hexNameMap[convColorToHex(cl)]; ok {
+		return name, true
+	}
+	return convColorToHex(cl), false
+}
+
+// GetNameOrHexByColor returns the name corresponding to the given color from the preset color map, or the hex string if the color is not found.
+func GetNameOrHexByColor(cl color.Color) string {
+	name, _ := GetNameByColor(cl)
+	return name
 }
 
 // GetColorNames returns the color names from the preset color map.
 func GetColorNames() []string {
+	// init name maps
 	nameOnce.Do(initNames)
+	// copy name slice
 	cls := make([]string, len(colorNames))
 	copy(cls, colorNames)
 	return cls
@@ -187,6 +212,21 @@ func ParseRepeatTimes(query string) (uint, error) {
 	}
 }
 
+// ParseColor parses the case-insensitive unstructured description of color and returns the corresponding color.Color.
+func ParseColor(query string) (color.Color, error) {
+	// init regex
+	regexOnce.Do(initRegex)
+
+	// prepare
+	query = strings.TrimSpace(strings.ToLower(query))
+	if query == emptyStr {
+		return nil, errBlankQuery
+	}
+
+	// parse
+	return parseColorQuery(query)
+}
+
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
 // The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec".
 // If the query is empty, it returns an error.
@@ -212,7 +252,7 @@ func ParseStateQuery(query string) (LightState, error) {
 
 	// parse each part
 	var err error
-	if state.Color, err = parseColor(query); err != nil {
+	if state.Color, err = parseColorQuery(query); err != nil {
 		return state, err
 	}
 	if state.FadeTime, err = parseFadeTime(query); err != nil {
@@ -226,7 +266,7 @@ func ParseStateQuery(query string) (LightState, error) {
 	return state, nil
 }
 
-func parseColor(query string) (color.Color, error) {
+func parseColorQuery(query string) (color.Color, error) {
 	// parse
 	for _, key := range colorRegexOrder {
 		pat, ok := colorRegexPats[key]
