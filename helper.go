@@ -65,6 +65,7 @@ func NewLightStateHSB(h, s, b float64, fadeTime time.Duration, ledN LEDIndex) Li
 }
 
 // HSBToRGB converts HSB to 8-bit RGB values.
+// e.g. 0, 100, 100 -> 0xff, 0x00, 0x00
 // The hue is in degrees [0, 360], saturation and brightness/value are percent in the range [0, 100].
 // Values outside of these ranges will be clamped.
 func HSBToRGB(hue, sat, bright float64) (red, green, blue uint8) {
@@ -111,16 +112,19 @@ func HexToColor(hex string) (color.Color, error) {
 }
 
 // RGBToColor converts 8-bit RGB values to color.Color.
+// e.g. 0xff, 0x00, 0x00 -> color.RGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff}
 func RGBToColor(r, g, b uint8) color.Color {
 	return convRGBToColor(r, g, b)
 }
 
 // ColorToRGB converts color.Color to 8-bit RGB values.
+// e.g. color.RGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff} -> 0xff, 0x00, 0x00
 func ColorToRGB(cl color.Color) (r, g, b uint8) {
 	return convColorToRGB(cl)
 }
 
 // HexToRGB converts hex string to 8-bit RGB values. The underlying implementation is HexToColor() + ColorToRGB().
+// e.g. "#FF0000" -> 0xff, 0x00, 0x00
 func HexToRGB(hex string) (r, g, b uint8, err error) {
 	cl, err := HexToColor(hex)
 	if err != nil {
@@ -131,6 +135,7 @@ func HexToRGB(hex string) (r, g, b uint8, err error) {
 }
 
 // RGBToHex converts 8-bit RGB values to hex string with leading #.
+// e.g. 0xff, 0x00, 0x00 -> "#FF0000"
 func RGBToHex(r, g, b uint8) string {
 	return fmt.Sprintf("#%02X%02X%02X", r, g, b)
 }
