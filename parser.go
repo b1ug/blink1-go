@@ -58,10 +58,10 @@ var (
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
-	emptyStr   string
 	nameOnce   sync.Once
 	colorNames []string
 	hexNameMap map[string]string
+	emptyStr   string
 
 	errNoTitleMatch  = errors.New("b1: no title match")
 	errNoRepeatMatch = errors.New("b1: no repeat times match")
