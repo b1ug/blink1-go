@@ -218,7 +218,68 @@ func TestParseRepeatTimes(t *testing.T) {
 				return
 			}
 			if got != tt.times {
-				t.Errorf("ParseRepeatTimes(%q) got = %q, want = %q", tt.query, got, tt.times)
+				t.Errorf("ParseRepeatTimes(%q) got = %v, want = %v", tt.query, got, tt.times)
+			}
+		})
+	}
+}
+
+func TestParseColor(t *testing.T) {
+	tests := []struct {
+		query   string
+		want    color.Color
+		wantErr bool
+	}{
+		{
+			query: "#ff0000",
+			want:  color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			query: "#00FF00",
+			want:  color.RGBA{R: 0x0, G: 0xff, B: 0x0, A: 0xff},
+		},
+		{
+			query: "#abc",
+			want:  color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			query: "on",
+			want:  color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		},
+		{
+			query: "off",
+			want:  color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			query: "red",
+			want:  color.RGBA{R: 0xff, G: 0x00, B: 0x0, A: 0xff},
+		},
+		{
+			query: "BLUE",
+			want:  color.RGBA{R: 0x0, G: 0x0, B: 0xff, A: 0xff},
+		},
+		{
+			query: "rgb(12,34,56)",
+			want:  color.RGBA{R: 0x0c, G: 0x22, B: 0x38, A: 0xff},
+		},
+		{
+			query: "hsb(356, 64, 90)",
+			want:  color.RGBA{R: 0xe6, G: 0x53, B: 0x5c, A: 0xff},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			got, err := blink1.ParseColor(tt.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseColor(%q) error = %v, wantErr = %v", tt.query, err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ParseColor(%q) got = %v, want = %v", tt.query, got, tt.want)
 			}
 		})
 	}
@@ -602,7 +663,7 @@ func TestParseStateQuery(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParseStateQuery(%q) got = %q, want = %q", tt.query, got, tt.want)
+				t.Errorf("ParseStateQuery(%q) got = %v, want = %v", tt.query, got, tt.want)
 			}
 		})
 	}

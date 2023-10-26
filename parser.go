@@ -187,6 +187,21 @@ func ParseRepeatTimes(query string) (uint, error) {
 	}
 }
 
+// ParseColor parses the case-insensitive unstructured description of color and returns the corresponding color.Color.
+func ParseColor(query string) (color.Color, error) {
+	// init regex
+	regexOnce.Do(initRegex)
+
+	// prepare
+	query = strings.TrimSpace(strings.ToLower(query))
+	if query == emptyStr {
+		return nil, errBlankQuery
+	}
+
+	// parse
+	return parseColorQuery(query)
+}
+
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
 // The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec".
 // If the query is empty, it returns an error.
@@ -212,7 +227,7 @@ func ParseStateQuery(query string) (LightState, error) {
 
 	// parse each part
 	var err error
-	if state.Color, err = parseColor(query); err != nil {
+	if state.Color, err = parseColorQuery(query); err != nil {
 		return state, err
 	}
 	if state.FadeTime, err = parseFadeTime(query); err != nil {
@@ -226,7 +241,7 @@ func ParseStateQuery(query string) (LightState, error) {
 	return state, nil
 }
 
-func parseColor(query string) (color.Color, error) {
+func parseColorQuery(query string) (color.Color, error) {
 	// parse
 	for _, key := range colorRegexOrder {
 		pat, ok := colorRegexPats[key]
