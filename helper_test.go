@@ -415,6 +415,9 @@ func TestHexToColor(t *testing.T) {
 			hex:     "#abg",
 			wantErr: true,
 		},
+		{
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.hex, func(t *testing.T) {
@@ -425,6 +428,204 @@ func TestHexToColor(t *testing.T) {
 			}
 			if err == nil && got != tt.want {
 				t.Errorf("HexToColor(%v) got = %v, want = %v", tt.hex, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRGBToColor(t *testing.T) {
+	tests := []struct {
+		r, g, b uint8
+		want    color.Color
+	}{
+		{
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			r:    0xff,
+			g:    0x0,
+			b:    0x0,
+			want: color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			r:    0xaa,
+			g:    0xbb,
+			b:    0xcc,
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			r:    0x1,
+			g:    0x2,
+			b:    0x3,
+			want: color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%v", tt.want), func(t *testing.T) {
+			got := b1.RGBToColor(tt.r, tt.g, tt.b)
+			if got != tt.want {
+				t.Errorf("RGBToColor(%v, %v, %v) got = %v, want = %v", tt.r, tt.g, tt.b, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestColorToRGB(t *testing.T) {
+	tests := []struct {
+		col                 color.Color
+		wantR, wantG, wantB uint8
+	}{
+		{
+			col:   color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+			wantR: 0x0,
+			wantG: 0x0,
+			wantB: 0x0,
+		},
+		{
+			col:   color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+			wantR: 0xff,
+			wantG: 0x0,
+			wantB: 0x0,
+		},
+		{
+			col:   color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+			wantR: 0xaa,
+			wantG: 0xbb,
+			wantB: 0xcc,
+		},
+		{
+			col:   color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+			wantR: 0x1,
+			wantG: 0x2,
+			wantB: 0x3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%v", tt.col), func(t *testing.T) {
+			gotR, gotG, gotB := b1.ColorToRGB(tt.col)
+			if gotR != tt.wantR || gotG != tt.wantG || gotB != tt.wantB {
+				t.Errorf("ColorToRGB(%v) got = (%v, %v, %v), want = (%v, %v, %v)", tt.col, gotR, gotG, gotB, tt.wantR, tt.wantG, tt.wantB)
+			}
+		})
+	}
+}
+
+func TestHexToRGB(t *testing.T) {
+	tests := []struct {
+		hex                 string
+		wantR, wantG, wantB uint8
+		wantErr             bool
+	}{
+		{
+			hex:     "#000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "#000000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "000000",
+			wantR:   0x0,
+			wantG:   0x0,
+			wantB:   0x0,
+			wantErr: false,
+		},
+		{
+			hex:     "#FF1234",
+			wantR:   0xff,
+			wantG:   0x12,
+			wantB:   0x34,
+			wantErr: false,
+		},
+		{
+			hex:     "ff1234",
+			wantR:   0xff,
+			wantG:   0x12,
+			wantB:   0x34,
+			wantErr: false,
+		},
+		{
+			hex:     "#AABBCC",
+			wantR:   0xaa,
+			wantG:   0xbb,
+			wantB:   0xcc,
+			wantErr: false,
+		},
+		{
+			hex:     "#aabbcc",
+			wantR:   0xaa,
+			wantG:   0xbb,
+			wantB:   0xcc,
+			wantErr: false,
+		},
+		{
+			hex:     "hello!",
+			wantErr: true,
+		},
+		{
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.hex, func(t *testing.T) {
+			gotR, gotG, gotB, err := b1.HexToRGB(tt.hex)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HexToRGB(%v) error = %v, wantErr = %v", tt.hex, err, tt.wantErr)
+				return
+			}
+			if err == nil && (gotR != tt.wantR || gotG != tt.wantG || gotB != tt.wantB) {
+				t.Errorf("HexToRGB(%v) got = (%v, %v, %v), want = (%v, %v, %v)", tt.hex, gotR, gotG, gotB, tt.wantR, tt.wantG, tt.wantB)
+			}
+		})
+	}
+}
+
+func TestRGBToHex(t *testing.T) {
+	tests := []struct {
+		r, g, b uint8
+		want    string
+	}{
+		{
+			want: "#000000",
+		},
+		{
+			r:    0xff,
+			g:    0x0,
+			b:    0x0,
+			want: "#FF0000",
+		},
+		{
+			r:    0xaa,
+			g:    0xbb,
+			b:    0xcc,
+			want: "#AABBCC",
+		},
+		{
+			r:    0x1,
+			g:    0x2,
+			b:    0x3,
+			want: "#010203",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := b1.RGBToHex(tt.r, tt.g, tt.b)
+			if got != tt.want {
+				t.Errorf("RGBToHex(%v, %v, %v) got = %v, want = %v", tt.r, tt.g, tt.b, got, tt.want)
 			}
 		})
 	}

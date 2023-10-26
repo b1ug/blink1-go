@@ -79,6 +79,9 @@ func ColorToHex(cl color.Color) string {
 }
 
 // HexToColor converts hex string to color.Color. The hex string can be in the format of #RRGGBB or #RGB or RRGGBB or RGB (case insensitive).
+// e.g. "#FF0000" -> color.RGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff}
+// However, if you want to convert color names to color.Color, use GetColorByName() instead.
+// And if your input string is more complex and diverse than hex or names, use ParseColor() instead.
 func HexToColor(hex string) (color.Color, error) {
 	if len(hex) < 3 {
 		return nil, errors.New("invalid hex: too short")
@@ -117,7 +120,7 @@ func ColorToRGB(cl color.Color) (r, g, b uint8) {
 	return convColorToRGB(cl)
 }
 
-// HexToRGB converts hex string to 8-bit RGB values.
+// HexToRGB converts hex string to 8-bit RGB values. The underlying implementation is HexToColor() + ColorToRGB().
 func HexToRGB(hex string) (r, g, b uint8, err error) {
 	cl, err := HexToColor(hex)
 	if err != nil {
