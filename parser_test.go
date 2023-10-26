@@ -803,3 +803,25 @@ func TestGetNameOrHexByColor(t *testing.T) {
 		})
 	}
 }
+
+func TestGetColorNames(t *testing.T) {
+	ns1 := blink1.GetColorNames()
+	ns2 := blink1.GetColorNames()
+
+	if !reflect.DeepEqual(ns1, ns2) {
+		t.Errorf("GetColorNames() should be consistent, got %v and %v", ns1, ns2)
+	}
+	if len(ns1) == 0 {
+		t.Errorf("GetColorNames() should return non-empty slice, got %v", ns1)
+	}
+	if ns1[0] != "apricot" {
+		t.Errorf("GetColorNames() should return apricot as first element, got %v", ns1[0])
+	}
+
+	ns1[0] = "foo"
+	ns2[0] = "bar"
+	ns3 := blink1.GetColorNames()
+	if ns3[0] != "apricot" {
+		t.Errorf("GetColorNames() should not be mutable, got %v", ns3[0])
+	}
+}
