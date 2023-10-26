@@ -54,23 +54,6 @@ func TestIsRunningOnSupportedOS(t *testing.T) {
 	}
 }
 
-func TestRandomColor(t *testing.T) {
-	times := 100
-	colors := make([]color.Color, times)
-	for i := 0; i < times; i++ {
-		colors[i] = b1.RandomColor()
-	}
-	counts := make(map[string]int)
-	for _, c := range colors {
-		r, g, b, _ := c.RGBA()
-		s := fmt.Sprintf("#%02X%02X%02X", r>>8, g>>8, b>>8)
-		counts[s]++
-	}
-	if lc := len(counts); lc <= int(float64(times)*0.9) {
-		t.Errorf("RandomColor(*) = %v, want different colors", lc)
-	}
-}
-
 func TestStringer(t *testing.T) {
 	tests := []struct {
 		typ fmt.Stringer

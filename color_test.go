@@ -1,6 +1,7 @@
 package blink1_test
 
 import (
+	"fmt"
 	"image/color"
 	"reflect"
 	"testing"
@@ -162,5 +163,22 @@ func TestGetNameOrHexByColor(t *testing.T) {
 				t.Errorf("GetNameOrHexByColor(%v) got = %s, want = %s", tt.col, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRandomColor(t *testing.T) {
+	times := 100
+	colors := make([]color.Color, times)
+	for i := 0; i < times; i++ {
+		colors[i] = blink1.RandomColor()
+	}
+	counts := make(map[string]int)
+	for _, c := range colors {
+		r, g, b, _ := c.RGBA()
+		s := fmt.Sprintf("#%02X%02X%02X", r>>8, g>>8, b>>8)
+		counts[s]++
+	}
+	if lc := len(counts); lc <= int(float64(times)*0.9) {
+		t.Errorf("RandomColor(*) = %v, want different colors", lc)
 	}
 }
