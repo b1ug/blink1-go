@@ -72,11 +72,13 @@ func HSBToRGB(hue, sat, bright float64) (red, green, blue uint8) {
 }
 
 // ColorToHex converts color.Color to hex string with leading #.
+// e.g. color.RGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff} -> "#FF0000"
+// However, if you need color names instead of hex strings, use GetNameByColor()/GetNameOrHexByColor() methods instead.
 func ColorToHex(cl color.Color) string {
 	return convColorToHex(cl)
 }
 
-// HexToColor converts hex string to color.Color. The hex string can be in the format of #RRGGBB or #RGB.
+// HexToColor converts hex string to color.Color. The hex string can be in the format of #RRGGBB or #RGB or RRGGBB or RGB (case insensitive).
 func HexToColor(hex string) (color.Color, error) {
 	if len(hex) < 3 {
 		return nil, errors.New("invalid hex: too short")

@@ -300,3 +300,132 @@ func TestHSBToRGB(t *testing.T) {
 		})
 	}
 }
+
+func TestColorToHex(t *testing.T) {
+	tests := []struct {
+		col  color.Color
+		want string
+	}{
+		{
+			col:  color.RGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+			want: "#FF0000",
+		},
+		{
+			col:  color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+			want: "#AABBCC",
+		},
+		{
+			col:  color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0x0},
+			want: "#AABBCC",
+		},
+		{
+			col:  color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+			want: "#010203",
+		},
+		{
+			col:  color.RGBA{R: 0x80, G: 0x0, B: 0x81, A: 0xff},
+			want: "#800081",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := b1.ColorToHex(tt.col)
+			if got != tt.want {
+				t.Errorf("ColorToHex(%v) got = %s, want = %s", tt.col, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHexToColor(t *testing.T) {
+	tests := []struct {
+		hex     string
+		want    color.Color
+		wantErr bool
+	}{
+		{
+			hex:  "#000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "#000000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "000000",
+			want: color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			hex:  "#FF1234",
+			want: color.RGBA{R: 0xff, G: 0x12, B: 0x34, A: 0xff},
+		},
+		{
+			hex:  "ff1234",
+			want: color.RGBA{R: 0xff, G: 0x12, B: 0x34, A: 0xff},
+		},
+		{
+			hex:  "#AABBCC",
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			hex:  "#aabbcc",
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			hex:  "#abc",
+			want: color.RGBA{R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
+		},
+		{
+			hex:  "#010203",
+			want: color.RGBA{R: 0x1, G: 0x2, B: 0x3, A: 0xff},
+		},
+		{
+			hex:  "#123",
+			want: color.RGBA{R: 0x11, G: 0x22, B: 0x33, A: 0xff},
+		},
+		{
+			hex:     "#FF1234 ",
+			wantErr: true,
+		},
+		{
+			hex:     " #FF1234",
+			wantErr: true,
+		},
+		{
+			hex:     "#FF12345",
+			wantErr: true,
+		},
+		{
+			hex:     "#12",
+			wantErr: true,
+		},
+		{
+			hex:     "#1234",
+			wantErr: true,
+		},
+		{
+			hex:     "X123",
+			wantErr: true,
+		},
+		{
+			hex:     "#abg",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.hex, func(t *testing.T) {
+			got, err := b1.HexToColor(tt.hex)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HexToColor(%v) error = %v, wantErr = %v", tt.hex, err, tt.wantErr)
+				return
+			}
+			if err == nil && got != tt.want {
+				t.Errorf("HexToColor(%v) got = %v, want = %v", tt.hex, got, tt.want)
+			}
+		})
+	}
+}
