@@ -143,7 +143,7 @@ func ParseColor(query string) (color.Color, error) {
 }
 
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
-// The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec".
+// The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec", "#FF0000L1T500".
 // If the query is empty, it returns an error.
 //
 // Color can be specified by name, hex code, or RGB/HSB values, e.g. "red", "#FF0000", "rgb(255,0,0)", "hsb(0,100,100)"
