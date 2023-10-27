@@ -16,6 +16,7 @@ var (
 	titleRegexPat     *regexp.Regexp
 	repeatRegexPat    *regexp.Regexp
 	commentRegexPat   *regexp.Regexp
+	stateTextRegexPat *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	colorRegexOrder   []string
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
@@ -36,6 +37,7 @@ func initRegex() {
 	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bonce|\btwice|\bthrice|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always|once|twice|thrice)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
 	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
+	stateTextRegexPat = regexp.MustCompile(`(?i)^#[0-9A-Fa-f]{6}L\dT\d+$`)
 
 	// for colors
 	colorWords := make([]string, 0, len(presetColorMap))
@@ -141,7 +143,7 @@ func ParseColor(query string) (color.Color, error) {
 }
 
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
-// The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec".
+// The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec", "#FF0000L1T500".
 // If the query is empty, it returns an error.
 //
 // Color can be specified by name, hex code, or RGB/HSB values, e.g. "red", "#FF0000", "rgb(255,0,0)", "hsb(0,100,100)"
@@ -162,6 +164,14 @@ func ParseStateQuery(query string) (LightState, error) {
 
 	// remove comments
 	query = commentRegexPat.ReplaceAllString(query, emptyStr)
+
+	// attempt to parse full as state
+	if stateTextRegexPat.MatchString(query) {
+		var st LightState
+		if err := st.UnmarshalText([]byte(query)); err == nil {
+			return st, nil
+		}
+	}
 
 	// parse each part
 	var err error
