@@ -68,11 +68,8 @@ var (
 	RainbowColors = []color.Color{ColorRed, ColorOrange, ColorYellow, ColorGreen, ColorCyan, ColorBlue, ColorViolet}
 )
 
-var colorNames = []string{
-	"apricot", "aqua", "beige", "black", "blue", "bronze", "brown", "cyan", "fuchsia", "gold", "gray", "green", "grey", "indigo", "lavender", "lime", "magenta", "maroon", "mint", "navy", "olive", "orange", "peach", "pink", "plum", "purple", "red", "scarlet", "silver", "teal", "violet", "white", "yellow",
-}
-
 // presetColorMap is a map of all supported preset color names to color values.
+// Don't forget to update this map when adding a new color as Color*.
 var presetColorMap = map[string]color.Color{
 	"apricot":  ColorApricot,
 	"aqua":     ColorCyan,
@@ -109,6 +106,7 @@ var presetColorMap = map[string]color.Color{
 	"yellow":   ColorYellow,
 }
 
+// hexNameMap is a map of all supported preset color hex strings to color names (formal name, not alias). It should be generated from presetColorMap.
 var hexNameMap = map[string]string{
 	"#000000": "black",
 	"#000080": "navy",
@@ -140,4 +138,9 @@ var hexNameMap = map[string]string{
 	"#FFE5B4": "peach",
 	"#FFFF00": "yellow",
 	"#FFFFFF": "white",
+}
+
+// colorNames is a slice of all supported preset color names. It should be generated from presetColorMap as well.
+var colorNames = []string{
+	"apricot", "aqua", "beige", "black", "blue", "bronze", "brown", "cyan", "fuchsia", "gold", "gray", "green", "grey", "indigo", "lavender", "lime", "magenta", "maroon", "mint", "navy", "olive", "orange", "peach", "pink", "plum", "purple", "red", "scarlet", "silver", "teal", "violet", "white", "yellow",
 }
