@@ -24,7 +24,7 @@ type Device struct {
 	sn  string // serial number
 
 	// state
-	mu   sync.Mutex
+	mu   sync.Mutex // mutex lock, only for atomic operations like I/O & close
 	info *hid.DeviceInfo
 	dev  hid.Device
 }

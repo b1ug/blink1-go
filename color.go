@@ -54,3 +54,16 @@ func RandomColor() color.Color {
 	// convert to RGB and return
 	return convRGBToColor(convHSBToRGB(hue, saturation, brightness))
 }
+
+// DecodeGammaColor operates gamma correction on the given color and returns the decoded color.
+// The gamma correction is automatically applied for state and pattern while playing or writing.
+// This is the inverse function of EncodeGammaColor.
+func DecodeGammaColor(cl color.Color) color.Color {
+	return convRGBToColor(degammaRGB(convColorToRGB(cl)))
+}
+
+// EncodeGammaColor operates gamma correction on the given color and returns the encoded color.
+// Encoding a decoded color may not return the original color, but it will be the same color when decoded again.
+func EncodeGammaColor(cl color.Color) color.Color {
+	return convRGBToColor(engammaRGB(convColorToRGB(cl)))
+}

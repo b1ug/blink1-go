@@ -212,3 +212,15 @@ func TestRandomColor(t *testing.T) {
 		t.Errorf("RandomColor(*) = %v, want different colors", lc)
 	}
 }
+
+func TestGammaColor(t *testing.T) {
+	for i := 0; i < 256; i++ {
+		cl0 := b1.RGBToColor(uint8(i), uint8(i), uint8(i))
+		cl1 := b1.DecodeGammaColor(cl0)
+		cl2 := b1.EncodeGammaColor(cl1)
+		cl3 := b1.DecodeGammaColor(cl2)
+		if cl3 != cl1 {
+			t.Errorf("Decode(%v) got = %v, Decode(Encode(Decode(%v))) got = %v, different", cl0, cl1, cl0, cl3)
+		}
+	}
+}

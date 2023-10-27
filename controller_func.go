@@ -20,6 +20,7 @@ func (c *Controller) GetFirmwareVersion() (int, error) {
 
 // PlayStateBlocking fades the given LED to the specified RGB color over the specified time, and blocks until the fade is finished.
 func (c *Controller) PlayStateBlocking(st LightState) error {
+	// NOTE: no lock here, since PlayState will lock
 	// play state
 	if err := c.PlayState(st); err != nil {
 		return err
@@ -37,7 +38,10 @@ func (c *Controller) PlayState(st LightState) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	r, g, b := degammaRGB(convColorToRGB(st.Color))
+	r, g, b := convColorToRGB(st.Color)
+	if c.gamma {
+		r, g, b = degammaRGB(r, g, b)
+	}
 	msec := uint(st.FadeTime.Milliseconds())
 	return c.dev.FadeToRGB(r, g, b, msec, st.LED)
 }
@@ -47,7 +51,10 @@ func (c *Controller) PlayColor(cl color.Color) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	r, g, b := degammaRGB(convColorToRGB(cl))
+	r, g, b := convColorToRGB(cl)
+	if c.gamma {
+		r, g, b = degammaRGB(r, g, b)
+	}
 	return c.dev.SetRGBNow(r, g, b, LEDAll)
 }
 
@@ -66,7 +73,10 @@ func (c *Controller) PlayHSB(hue, saturation, brightness float64) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	r, g, b := degammaRGB(convHSBToRGB(hue, saturation, brightness))
+	r, g, b := convHSBToRGB(hue, saturation, brightness)
+	if c.gamma {
+		r, g, b = degammaRGB(r, g, b)
+	}
 	return c.dev.SetRGBNow(r, g, b, LEDAll)
 }
 
@@ -85,6 +95,7 @@ func (c *Controller) ReadColor(ledN LEDIndex) (color.Color, error) {
 // PlayPatternBlocking plays the given pattern, and blocks until the pattern is finished. It may block forever if the pattern is set to loop forever.
 // If the pattern has no states, it will only play the pattern without writing states to the device's RAM, and blocks until the pattern is finished.
 func (c *Controller) PlayPatternBlocking(pt Pattern) error {
+	// NOTE: no lock here, since PlayPattern will lock
 	// play pattern
 	if err := c.PlayPattern(pt); err != nil {
 		return err
@@ -136,7 +147,7 @@ func (c *Controller) PlayPattern(pt Pattern) error {
 	}
 
 	// load pattern to RAM
-	if err := c.LoadPattern(pt.StartPosition, pt.EndPosition, pt.Sequence); err != nil {
+	if err := c.loadStateSequence(pt.StartPosition, pt.EndPosition, pt.Sequence); err != nil {
 		return err
 	}
 
@@ -144,9 +155,19 @@ func (c *Controller) PlayPattern(pt Pattern) error {
 	return c.dev.PlayLoop(true, pt.StartPosition, pt.EndPosition, pt.RepeatTimes)
 }
 
-// LoadPattern loads the given pattern to the device's RAM.
-func (c *Controller) LoadPattern(posStart, posEnd uint, states []LightState) error {
-	sc := len(states) // sc for state counter
+// LoadPattern writes the given pattern to the device's RAM and it will be lost after the device is powered off.
+// To save the pattern to the device's flash, call WritePattern() after calling this function.
+func (c *Controller) LoadPattern(posStart, posEnd uint, seq StateSequence) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// load pattern to RAM
+	return c.loadStateSequence(posStart, posEnd, seq)
+}
+
+// loadStateSequence loads the given pattern to the device's RAM.
+func (c *Controller) loadStateSequence(posStart, posEnd uint, seq StateSequence) error {
+	sc := len(seq) // sc for state counter
 	if sc == 0 {
 		// no states, just do nothing
 		return nil
@@ -164,8 +185,10 @@ func (c *Controller) LoadPattern(posStart, posEnd uint, states []LightState) err
 	pc := 0 // pc for position counter
 	for pos := posStart; pos <= posEnd; pos++ {
 		// convert state with degamma and set as pattern
-		st := convLightState(states[pc])
-		st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
+		st := convLightState(seq[pc])
+		if c.gamma {
+			st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
+		}
 
 		// operate on device
 		if err := retryWorkload(func() error {
@@ -204,7 +227,7 @@ func (c *Controller) ReadPattern() (StateSequence, error) {
 	return ls, nil
 }
 
-// WritePattern writes the pattern in the device's RAM to its flash.
+// WritePattern writes the pattern stored in the device's RAM to its flash. For mk2 device, only the first 16 patterns can be saved.
 func (c *Controller) WritePattern() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

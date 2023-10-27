@@ -11,6 +11,7 @@ import (
 type Controller struct {
 	mu     sync.Mutex
 	dev    *Device
+	gamma  bool
 	quitCh chan struct{}
 }
 
@@ -20,12 +21,12 @@ func OpenController(info *hid.DeviceInfo) (*Controller, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Controller{dev: dev}, nil
+	return &Controller{dev: dev, gamma: true}, nil
 }
 
 // NewController creates a blink(1) controller for existing device instance.
 func NewController(dev *Device) *Controller {
-	return &Controller{dev: dev}
+	return &Controller{dev: dev, gamma: true}
 }
 
 func (c *Controller) String() string {
@@ -40,4 +41,12 @@ func (c *Controller) GetDevice() *Device {
 // Close closes the device and release the kept resources.
 func (c *Controller) Close() {
 	c.dev.Close()
+}
+
+// SetGammaCorrection sets the gamma correction on/off for the controller. Default is on.
+// If it is true, the gamma correction will be applied for state and pattern while playing or writing.
+func (c *Controller) SetGammaCorrection(on bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.gamma = on
 }
