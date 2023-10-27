@@ -648,6 +648,18 @@ func TestParseStateQuery(t *testing.T) {
 			want:  b1.LightState{Color: color.RGBA{R: 0x12, G: 0x34, B: 0x56, A: 0xff}, LED: b1.LED2, FadeTime: 20 * time.Millisecond},
 		},
 		{
+			query:   `#8000FGL0T1500`,
+			wantErr: true,
+		},
+		{
+			query:   `#123456l2x20`,
+			wantErr: true,
+		},
+		{
+			query:   `123456l2t20`,
+			wantErr: true,
+		},
+		{
 			query:   `led=1 color=yellow`,
 			wantErr: true,
 		},
