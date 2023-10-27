@@ -16,6 +16,7 @@ var (
 	titleRegexPat     *regexp.Regexp
 	repeatRegexPat    *regexp.Regexp
 	commentRegexPat   *regexp.Regexp
+	stateTextRegexPat *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	colorRegexOrder   []string
 	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
@@ -36,6 +37,7 @@ func initRegex() {
 	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bonce|\btwice|\bthrice|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always|once|twice|thrice)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
 	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
+	stateTextRegexPat = regexp.MustCompile(`(?i)^#[0-9A-Fa-f]{6}L\dT\d+$`)
 
 	// for colors
 	colorWords := make([]string, 0, len(presetColorMap))
@@ -162,6 +164,14 @@ func ParseStateQuery(query string) (LightState, error) {
 
 	// remove comments
 	query = commentRegexPat.ReplaceAllString(query, emptyStr)
+
+	// attempt to parse full as state
+	if stateTextRegexPat.MatchString(query) {
+		var st LightState
+		if err := st.UnmarshalText([]byte(query)); err == nil {
+			return st, nil
+		}
+	}
 
 	// parse each part
 	var err error
