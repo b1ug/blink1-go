@@ -12,6 +12,7 @@ import (
 	"image/color"
 	"math"
 	"math/big"
+	"sync"
 	"time"
 )
 
@@ -242,7 +243,33 @@ var gammaE = []byte{
 	191, 193, 194, 196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216, 218, 220,
 	222, 224, 227, 229, 231, 233, 235, 237, 239, 241, 244, 246, 248, 250, 252, 255}
 
-// degammaRGB operates degamma correction for 8-bit RGB values.
+// degammaRGB operates gamma correction decoding for 8-bit RGB values.
 func degammaRGB(r, g, b uint8) (rr, gg, bb uint8) {
 	return gammaE[r], gammaE[g], gammaE[b]
+}
+
+var (
+	onceGamma sync.Once
+	gammaD    []byte
+)
+
+// engammaRGB operates gamma correction encoding for 8-bit RGB values.
+func engammaRGB(r, g, b uint8) (rr, gg, bb uint8) {
+	onceGamma.Do(func() {
+		l := len(gammaE)
+		dd := make([]byte, l)
+		for i := 0; i < l; i++ {
+			dd[gammaE[i]] = byte(i)
+		}
+		last := dd[0]
+		for i := 1; i < l; i++ {
+			if dd[i] == 0 {
+				dd[i] = last
+			} else {
+				last = dd[i]
+			}
+		}
+		gammaD = dd
+	})
+	return gammaD[r], gammaD[g], gammaD[b]
 }
