@@ -17,7 +17,6 @@ import (
 // Currently there is no noticeable performance gain from calling this function before using other APIs.
 func Preload() {
 	regexOnce.Do(initRegex)
-	nameOnce.Do(initNames)
 }
 
 // IsRunningOnSupportedOS returns true if the current OS is supported by underlying HID library.

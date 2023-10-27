@@ -29,6 +29,36 @@ func TestGetColorNames(t *testing.T) {
 	if ns3[0] != "apricot" {
 		t.Errorf("GetColorNames() should not be mutable, got %v", ns3[0])
 	}
+
+	except := []string{"aqua", "fuchsia", "grey"}
+	for _, n := range ns3 {
+		// skip excepted names
+		ignored := false
+		for _, e := range except {
+			if n == e {
+				ignored = true
+				break
+			}
+		}
+		if ignored {
+			continue
+		}
+
+		// get color by name
+		c, ok := b1.GetColorByName(n)
+		if !ok {
+			t.Errorf("GetColorByName(%q) should return true", n)
+		}
+		// get name by color as reverse
+		n2, ok2 := b1.GetNameByColor(c)
+		if !ok2 {
+			t.Errorf("GetNameByColor(%v) should return true", c)
+		}
+		// compare names
+		if n != n2 {
+			t.Errorf("GetNameByColor(%v) should return %q, got %q", c, n, n2)
+		}
+	}
 }
 
 func TestGetColorByName(t *testing.T) {
