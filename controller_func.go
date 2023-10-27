@@ -38,7 +38,10 @@ func (c *Controller) PlayState(st LightState) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	r, g, b := degammaRGB(convColorToRGB(st.Color))
+	r, g, b := convColorToRGB(st.Color)
+	if c.gamma {
+		r, g, b = degammaRGB(r, g, b)
+	}
 	msec := uint(st.FadeTime.Milliseconds())
 	return c.dev.FadeToRGB(r, g, b, msec, st.LED)
 }
@@ -48,7 +51,10 @@ func (c *Controller) PlayColor(cl color.Color) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	r, g, b := degammaRGB(convColorToRGB(cl))
+	r, g, b := convColorToRGB(cl)
+	if c.gamma {
+		r, g, b = degammaRGB(r, g, b)
+	}
 	return c.dev.SetRGBNow(r, g, b, LEDAll)
 }
 
@@ -67,7 +73,10 @@ func (c *Controller) PlayHSB(hue, saturation, brightness float64) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	r, g, b := degammaRGB(convHSBToRGB(hue, saturation, brightness))
+	r, g, b := convHSBToRGB(hue, saturation, brightness)
+	if c.gamma {
+		r, g, b = degammaRGB(r, g, b)
+	}
 	return c.dev.SetRGBNow(r, g, b, LEDAll)
 }
 
@@ -177,7 +186,9 @@ func (c *Controller) loadStateSequence(posStart, posEnd uint, seq StateSequence)
 	for pos := posStart; pos <= posEnd; pos++ {
 		// convert state with degamma and set as pattern
 		st := convLightState(seq[pc])
-		st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
+		if c.gamma {
+			st.R, st.G, st.B = degammaRGB(st.R, st.G, st.B)
+		}
 
 		// operate on device
 		if err := retryWorkload(func() error {
