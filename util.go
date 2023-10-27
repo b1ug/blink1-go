@@ -261,12 +261,9 @@ func engammaRGB(r, g, b uint8) (rr, gg, bb uint8) {
 		for i := 0; i < l; i++ {
 			dd[gammaE[i]] = byte(i)
 		}
-		last := dd[0]
 		for i := 1; i < l; i++ {
 			if dd[i] == 0 {
-				dd[i] = last
-			} else {
-				last = dd[i]
+				dd[i] = dd[i-1]
 			}
 		}
 		gammaD = dd
