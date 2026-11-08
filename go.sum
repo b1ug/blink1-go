@@ -1,2 +1,4 @@
 github.com/b1ug/gid v0.0.1 h1:YP87QnRv7MBfC9PrbbN9u/obK401AM+nuXjpP3WayzM=
 github.com/b1ug/gid v0.0.1/go.mod h1:b9pd+IB3F4qVXRRUOWgux7TWqxceIEGo/mhoBcOp9RM=
+github.com/b1ug/gid v0.0.3-0.20261108194932-7d9978debbdf h1:XcYXEnyKWa10qxfz6FpVFSFggiN0xE8QXAnuS81Vzgc=
+github.com/b1ug/gid v0.0.3-0.20261108194932-7d9978debbdf/go.mod h1:b9pd+IB3F4qVXRRUOWgux7TWqxceIEGo/mhoBcOp9RM=
