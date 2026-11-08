@@ -53,7 +53,7 @@ func (b1 *Device) ReadRGB(ledN LEDIndex) (r, g, b byte, err error) {
 	buf[7] = ledN.ToByte()
 
 	// execute
-	if err = b1.read(buf); err != nil {
+	if err = b1.read(buf, 5); err != nil {
 		return
 	}
 
@@ -106,7 +106,7 @@ func (b1 *Device) ReadPlaystate() (st DevicePatternState, err error) {
 	buf[1] = 'S'
 
 	// execute
-	if err := b1.read(buf); err != nil {
+	if err := b1.read(buf, 7); err != nil {
 		return st, err
 	}
 
@@ -173,7 +173,7 @@ func (b1 *Device) ReadPatternLine(pos uint) (st DeviceLightState, err error) {
 	buf[7] = byte(pos)
 
 	// execute
-	if err := b1.read(buf); err != nil {
+	if err := b1.read(buf, 8); err != nil {
 		return st, err
 	}
 
@@ -252,7 +252,7 @@ func (b1 *Device) GetVersion() (ver int, err error) {
 	buf[1] = 'v'
 
 	// execute
-	if err = b1.read(buf); err != nil {
+	if err = b1.read(buf, 5); err != nil {
 		return
 	}
 
@@ -271,7 +271,9 @@ func (b1 *Device) Test() ([]byte, error) {
 	buf[1] = '!'
 
 	// execute
-	err := b1.delayRead(buf, 50)
+	// The raw test response differs by firmware; require a nonempty response
+	// without imposing a command echo or a fixed payload layout.
+	err := b1.delayRead(buf, 50, 1)
 	return buf, err
 }
 
