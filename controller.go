@@ -9,10 +9,14 @@ import (
 
 // Controller provides a high-level API for operating blink(1) devices, abstracting away the low-level details.
 type Controller struct {
-	mu     sync.Mutex
-	dev    *Device
-	gamma  bool
-	quitCh chan struct{}
+	mu            sync.Mutex
+	dev           *Device
+	gamma         bool
+	quitCh        chan struct{}
+	tickleDoneCh  chan struct{}
+	manualQuitCh  chan struct{}
+	manualTickles sync.WaitGroup
+	closed        bool
 }
 
 // OpenController opens a blink(1) controller for device which is connected to the system.
@@ -38,9 +42,23 @@ func (c *Controller) GetDevice() *Device {
 	return c.dev
 }
 
-// Close closes the device and release the kept resources.
+// Close stops all tickle workers, waits for them to finish, and closes the device.
+// It is safe to call Close more than once.
 func (c *Controller) Close() {
-	c.dev.Close()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return
+	}
+	c.closed = true
+	c.stopAutoTickle()
+	if c.manualQuitCh != nil {
+		close(c.manualQuitCh)
+	}
+	c.manualTickles.Wait()
+	if c.dev != nil {
+		c.dev.Close()
+	}
 }
 
 // SetGammaCorrection sets the gamma correction on/off for the controller. Default is on.
