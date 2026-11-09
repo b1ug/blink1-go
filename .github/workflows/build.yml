@@ -1,8 +1,8 @@
-name: Build
+name: SDK integrated validation
 
 on:
   push:
-    branches: [master]
+    branches: [master, ci/integrated-sdk-20261110]
   pull_request:
     branches: [master]
   workflow_dispatch:
