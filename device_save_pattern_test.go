@@ -45,7 +45,7 @@ func TestSavePatternWriteOutcome(t *testing.T) {
 					}
 					if test.err == nativeErr {
 						var got *hid.NativeError
-						if !errors.As(err, &got) || got != nativeErr {
+						if !errors.As(err, &got) || got != nativeErr || got.NativeCode() != 123 || got.NativePlatform() != "test-platform" {
 							t.Errorf("save lost native error identity: %v", err)
 						}
 					}
@@ -56,6 +56,36 @@ func TestSavePatternWriteOutcome(t *testing.T) {
 						t.Errorf("save I/O = writes %x, reads %d; want one original report", h.writes, h.reads)
 					}
 				})
+			}
+		})
+	}
+}
+
+// appliedSaveTimeoutHID models a save taking effect before the transport reports
+// a timeout. It is not a flash or power-loss durability simulation.
+type appliedSaveTimeoutHID struct {
+	transactionHID
+	saveApplied bool
+}
+
+func (h *appliedSaveTimeoutHID) WriteFeature(data []byte) error {
+	if bytes.Equal(data, []byte{1, 'W', 0xBE, 0xEF, 0xCA, 0xFE, 0, 0, 0}) {
+		h.saveApplied = true
+	}
+	return h.transactionHID.WriteFeature(data)
+}
+
+func TestSavePatternAppliedBeforeTimeout(t *testing.T) {
+	for _, caller := range savePatternCallers() {
+		t.Run(caller.name, func(t *testing.T) {
+			h := &appliedSaveTimeoutHID{transactionHID: transactionHID{writeErr: context.DeadlineExceeded}}
+			d := &Device{gen: 2, dev: h}
+			err := caller.call(d)
+			if !h.saveApplied || !errors.Is(err, context.DeadlineExceeded) {
+				t.Errorf("applied = %v, error = %v; want the communication error even after the modeled save", h.saveApplied, err)
+			}
+			if len(h.writes) != 1 || h.reads != 0 {
+				t.Errorf("ambiguous save was repeated or queried: writes %x, reads %d", h.writes, h.reads)
 			}
 		})
 	}

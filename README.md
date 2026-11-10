@@ -117,6 +117,13 @@ persistence uncertain; do not automatically repeat the save. A nil error means
 the transport write completed, not that persistence across power loss was
 verified. This concerns device flash, separately from nb1's host Pattern library.
 
+This intentionally changes earlier SDK error handling. The upstream C
+[`blink1_savePattern` implementation](https://github.com/todbot/blink1-tool/blob/main/blink1-lib.c)
+assumes success because flash programming can time out USB. That compatibility
+workaround explains the previous behavior; it is not evidence that persistence
+was confirmed. This SDK now exposes the communication error without declaring
+whether the device applied the save.
+
 ## Contributing
 
 Your contributions are greatly appreciated! Whether you spot a bug, propose an improvement, or wish to add a new feature, your contributions help make this package and blink(1) device better.
