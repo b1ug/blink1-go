@@ -1,46 +1,94 @@
-name: Build
+name: SDK SavePattern fixed payload validation
 
-on:
+"on":
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    branches: [ci/savepattern-fixed-5dfb297-20261110]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
     shell: bash
 
+env:
+  CGO_ENABLED: "1"
+  GOWORK: "off"
+  GOTOOLCHAIN: local
+  GID_TEST_ENUMERATE: "0"
+  GID_TEST_DEVICE_PATH: ""
+
 jobs:
-  build:
-    name: Go ${{ matrix.go-ver }} on ${{ matrix.vm-os }}
-    runs-on: ${{ matrix.vm-os }}
+  native:
+    if: ${{ github.repository == 'b1ug/blink1-go' && github.ref == 'refs/heads/ci/savepattern-fixed-5dfb297-20261110' }}
+    name: Fixed SavePattern / ${{ matrix.os }} / Go ${{ matrix.go }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
-      max-parallel: 9
       fail-fast: false
       matrix:
-        vm-os: [ubuntu-20.04, macos-12, windows-2022]
-        go-ver:
-          - "1.13.15"
-          - "1.14.15"
-          - "1.15.15"
-          - "1.16.15"
-          - "1.17.13"
-          - "1.18.10"
-          - "1.19.13"
-          - "1.20.9"
-          - "1.21.2"
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel, windows-2022]
+        go: ["1.26.x", "1.27.x"]
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: ${{ matrix.go-ver }}
-      - name: Go Build
+          ref: 5dfb297f2958c8be0e4b0107aa47eaaca2b656f8
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Verify fixed payload and record native toolchain
         run: |
-          git status
+          test "$(git rev-parse HEAD)" = 5dfb297f2958c8be0e4b0107aa47eaaca2b656f8
+          test -z "$(git status --porcelain)"
+          printf 'Workflow event commit: %s\n' "$GITHUB_SHA"
+          printf 'Fixed SDK payload: '
+          git rev-parse HEAD
           go version
-          go build -v .
-      - name: Go Test
-        if: ${{ runner.os != 'Windows' }}
+          go env GOOS GOARCH CGO_ENABLED CC
+          gcc --version
+          go list -mod=readonly -m -json all
+          go mod verify
+      - name: Build native SDK
+        run: go build -mod=readonly -v ./...
+      - name: Test SDK without opening hardware
+        run: go test -mod=readonly -race -count=1 -timeout=2m -v ./...
+      - name: Vet SDK
+        run: go vet -mod=readonly ./...
+
+  legacy-source:
+    if: ${{ github.repository == 'b1ug/blink1-go' && github.ref == 'refs/heads/ci/savepattern-fixed-5dfb297-20261110' }}
+    name: Fixed SavePattern / ubuntu-22.04 / Go 1.13.15
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 5dfb297f2958c8be0e4b0107aa47eaaca2b656f8
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.13.15"
+          cache: false
+      - name: Verify fixed payload and record legacy toolchain
         run: |
-          go test -cover -covermode=atomic -v -count 1 ./...
+          test "$(git rev-parse HEAD)" = 5dfb297f2958c8be0e4b0107aa47eaaca2b656f8
+          test -z "$(git status --porcelain)"
+          printf 'Workflow event commit: %s\n' "$GITHUB_SHA"
+          printf 'Fixed SDK payload: '
+          git rev-parse HEAD
+          go version
+          go env GOOS GOARCH CGO_ENABLED CC
+          gcc --version
+          go list -mod=readonly -m -json all
+          go mod verify
+      - name: Build and test Go 1.13 source compatibility
+        run: |
+          go build -mod=readonly -v ./...
+          go test -mod=readonly -count=1 -timeout=2m -v ./...
