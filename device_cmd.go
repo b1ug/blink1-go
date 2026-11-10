@@ -186,7 +186,9 @@ func (b1 *Device) ReadPatternLine(pos uint) (st DeviceLightState, err error) {
 
 // SavePattern saves the current pattern to the device.
 //
-// Returns an error if there was a problem communicating with the device.
+// Returns a communication error without retrying. An error, including a USB
+// timeout during flash programming, leaves persistence uncertain. A successful
+// write does not independently verify nonvolatile storage.
 func (b1 *Device) SavePattern() error {
 	// command data
 	buf := make([]byte, cmdBufSize)
@@ -197,12 +199,7 @@ func (b1 *Device) SavePattern() error {
 	buf[4] = 0xCA
 	buf[5] = 0xFE
 
-	// Flash programming may time out USB, so its I/O error is ignored. A closed
-	// handle must still be reported because no programming was attempted.
-	if err := b1.write(buf); err == errDeviceClosed {
-		return err
-	}
-	return nil
+	return b1.write(buf)
 }
 
 // SetTickleMode sets the device to server tickle mode, which will play the pattern from the specified start position to the specified end position after the specified timeout.

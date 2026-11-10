@@ -107,6 +107,16 @@ invalid RAM positions fail before I/O. There is no new retry, playback, persiste
 or hardware qualification. Read the [raw inspection guide](docs/raw-pattern-inspection.md)
 before interpreting a snapshot as a sequence, completion state, or Flash content.
 
+## Saving device patterns
+
+`Device.SavePattern` and `Controller.WritePattern` return feature-write errors,
+including transport timeouts, instead of treating them as successful saves.
+They send the existing save report once, without automatic retries or readback.
+A failed write may already have reached the device, so an error leaves flash
+persistence uncertain; do not automatically repeat the save. A nil error means
+the transport write completed, not that persistence across power loss was
+verified. This concerns device flash, separately from nb1's host Pattern library.
+
 ## Contributing
 
 Your contributions are greatly appreciated! Whether you spot a bug, propose an improvement, or wish to add a new feature, your contributions help make this package and blink(1) device better.
