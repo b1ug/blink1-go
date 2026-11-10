@@ -88,6 +88,23 @@ func main() {
 
 For more examples, please refer to [go.dev](https://pkg.go.dev/github.com/b1ug/blink1-go#pkg-examples).
 
+## Saving device patterns
+
+`Device.SavePattern` and `Controller.WritePattern` return feature-write errors,
+including transport timeouts, instead of treating them as successful saves.
+They send the existing save report once, without automatic retries or readback.
+A failed write may already have reached the device, so an error leaves flash
+persistence uncertain; do not automatically repeat the save. A nil error means
+the transport API reported success, not that persistence across power loss was
+verified.
+
+This intentionally changes earlier SDK error handling. The upstream C
+[`blink1_savePattern` implementation](https://github.com/todbot/blink1-tool/blob/main/blink1-lib.c)
+assumes success because flash programming can time out USB. That compatibility
+workaround explains the previous behavior; it is not evidence that persistence
+was confirmed. This SDK now exposes the communication error without declaring
+whether the device applied the save.
+
 ## Contributing
 
 Your contributions are greatly appreciated! Whether you spot a bug, propose an improvement, or wish to add a new feature, your contributions help make this package and blink(1) device better.
