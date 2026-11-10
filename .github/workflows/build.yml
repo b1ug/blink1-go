@@ -1,46 +1,255 @@
-name: Build
+name: SDK b3 GID37 fixed payload validation
 
-on:
+"on":
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    branches: [ci/b3-gid37-fixed-b3f2586-20261110]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
     shell: bash
 
+env:
+  CGO_ENABLED: "1"
+  GOWORK: "off"
+  GOTOOLCHAIN: local
+  GID_TEST_ENUMERATE: "0"
+  GID_TEST_DEVICE_PATH: ""
+
 jobs:
-  build:
-    name: Go ${{ matrix.go-ver }} on ${{ matrix.vm-os }}
-    runs-on: ${{ matrix.vm-os }}
+  native:
+    if: ${{ github.repository == 'b1ug/blink1-go' && github.ref == 'refs/heads/ci/b3-gid37-fixed-b3f2586-20261110' }}
+    name: Fixed b3 GID37 / ${{ matrix.os }} / Go ${{ matrix.go }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      SDK_RUNNER_LABEL: ${{ matrix.os }}
+      SDK_GO_LINE: ${{ matrix.go }}
     strategy:
-      max-parallel: 9
       fail-fast: false
       matrix:
-        vm-os: [ubuntu-20.04, macos-12, windows-2022]
-        go-ver:
-          - "1.13.15"
-          - "1.14.15"
-          - "1.15.15"
-          - "1.16.15"
-          - "1.17.13"
-          - "1.18.10"
-          - "1.19.13"
-          - "1.20.9"
-          - "1.21.2"
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel, windows-2022]
+        go: ["1.26.x", "1.27.x"]
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: ${{ matrix.go-ver }}
-      - name: Go Build
+          ref: b3f2586cc73073a7a0432889ea14a18c13247f46
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Verify literal payload, dependency and native toolchain
         run: |
-          git status
+          set -euo pipefail
+
+          test "$(git rev-parse HEAD)" = b3f2586cc73073a7a0432889ea14a18c13247f46
+          test -z "$(git status --porcelain)"
+          test "$GITHUB_REPOSITORY" = b1ug/blink1-go
+          test "$GITHUB_REF" = refs/heads/ci/b3-gid37-fixed-b3f2586-20261110
+          printf 'Workflow event commit: %s\n' "$GITHUB_SHA"
+          printf 'Workflow file commit: %s\n' "$GITHUB_WORKFLOW_SHA"
+          printf 'Fixed SDK payload: '
+          git rev-parse HEAD
+          printf 'Runner label/name/os/arch: %s / %s / %s / %s\n' "$SDK_RUNNER_LABEL" "$RUNNER_NAME" "$RUNNER_OS" "$RUNNER_ARCH"
+          case "$SDK_RUNNER_LABEL" in
+            ubuntu-24.04|ubuntu-22.04) sdk_goos=linux; sdk_goarch=amd64; sdk_arch=X64 ;;
+            ubuntu-24.04-arm) sdk_goos=linux; sdk_goarch=arm64; sdk_arch=ARM64 ;;
+            macos-15) sdk_goos=darwin; sdk_goarch=arm64; sdk_arch=ARM64 ;;
+            macos-15-intel) sdk_goos=darwin; sdk_goarch=amd64; sdk_arch=X64 ;;
+            windows-2022) sdk_goos=windows; sdk_goarch=amd64; sdk_arch=X64 ;;
+            *) exit 1 ;;
+          esac
+          test "$RUNNER_ARCH" = "$sdk_arch"
+          test "$(go env GOOS)" = "$sdk_goos"
+          test "$(go env GOARCH)" = "$sdk_goarch"
+          test "$(go env CGO_ENABLED)" = 1
+          case "$SDK_GO_LINE" in
+            1.26.x) go version | grep -E 'go1[.]26[.][0-9]+ ' ;;
+            1.27.x) go version | grep -E 'go1[.]27[.][0-9]+ ' ;;
+            1.13.15) go version | grep -F 'go1.13.15 ' ;;
+            *) exit 1 ;;
+          esac
           go version
-          go build -v .
-      - name: Go Test
-        if: ${{ runner.os != 'Windows' }}
+          go env GOOS GOARCH CGO_ENABLED CC
+          gcc --version
+          # These are Git source-object hashes, portable across checkout line endings.
+          test "$(git rev-parse HEAD:go.mod)" = d7a550600e5c80096d3d61e8f84228892b168606
+          test "$(git rev-parse HEAD:go.sum)" = 709f1f2ec59799bcbf901e2cfb26a1bc67e1d1e4
+          go mod download -json github.com/b1ug/gid@v0.0.3-0.20261109043911-37d7cfde72ed | tee "$RUNNER_TEMP/gid-download.json"
+          grep -F '"Sum": "h1:yxpXHZnzwCPfGfEfxYTeTJ6Pz72M1grVJ3EllxQEa38="' "$RUNNER_TEMP/gid-download.json"
+          grep -F '"GoModSum": "h1:b9pd+IB3F4qVXRRUOWgux7TWqxceIEGo/mhoBcOp9RM="' "$RUNNER_TEMP/gid-download.json"
+          go list -mod=readonly -m -json all
+          test "$(go list -mod=readonly -m -f '{{.Version}}|{{if .Replace}}replaced{{else}}no-replace{{end}}' github.com/b1ug/gid)" = 'v0.0.3-0.20261109043911-37d7cfde72ed|no-replace'
+          test -z "$(go list -mod=readonly -m -f '{{if .Replace}}{{.Path}}{{end}}' all)"
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
+          test -z "$(git status --porcelain)"
+      - name: Build native SDK
+        run: go build -mod=readonly -v ./...
+      - name: Test with race and record JSON test nodes without hardware
         run: |
-          go test -cover -covermode=atomic -v -count 1 ./...
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/sdk-test-summary.go" <<'GO'
+          package main
+          import (
+           "bufio"
+           "encoding/json"
+           "fmt"
+           "os"
+           "strconv"
+           "strings"
+          )
+          type event struct { Action, Package, Test string }
+          func main() {
+           if len(os.Args)!=3 { panic("log path and command status required") }
+           status,err:=strconv.Atoi(os.Args[2]);if err!=nil {panic(err)}
+           input,err:=os.Open(os.Args[1]);if err!=nil {panic(err)};defer input.Close()
+           scan:=bufio.NewScanner(input);scan.Buffer(make([]byte,4096),4<<20)
+           passed,failed,skipped,top,packages,skippedPackages,nonJSON:=0,0,0,0,0,0,0
+           seen:=map[string]bool{}
+           for scan.Scan() {
+            var row event
+            if json.Unmarshal(scan.Bytes(),&row)!=nil {nonJSON++;continue}
+            if row.Test=="" {if row.Action=="pass" {packages++};if row.Action=="fail" {failed++};if row.Action=="skip" {skippedPackages++};continue}
+            if row.Action!="pass"&&row.Action!="fail"&&row.Action!="skip" {continue}
+            key:=row.Package+"/"+row.Test
+            if seen[key] {panic("duplicate terminal test node")};seen[key]=true
+            switch row.Action {case "pass":passed++;if !strings.Contains(row.Test,"/") {top++};case "fail":failed++;case "skip":skipped++}
+           }
+           if err:=scan.Err();err!=nil {panic(err)}
+           result:=map[string]interface{}{"event":"sdk_fixed_payload_test_summary","wrapper":os.Getenv("GITHUB_SHA"),"workflow_commit":os.Getenv("GITHUB_WORKFLOW_SHA"),"payload":"b3f2586cc73073a7a0432889ea14a18c13247f46","gid":"v0.0.3-0.20261109043911-37d7cfde72ed","runner":os.Getenv("SDK_RUNNER_LABEL"),"go_line":os.Getenv("SDK_GO_LINE"),"passed_nodes":passed,"top_level_passed":top,"failed_nodes_or_packages":failed,"skipped_nodes":skipped,"passed_packages":packages,"skipped_packages":skippedPackages,"non_json_lines":nonJSON,"test_exit":status}
+           if err:=json.NewEncoder(os.Stdout).Encode(result);err!=nil {panic(err)}
+           if status!=0||passed==0||packages==0||failed!=0||skipped!=0||skippedPackages!=0 {fmt.Fprintln(os.Stderr,"test command or bounded test evidence did not pass");os.Exit(1)}
+          }
+          GO
+          set +e
+          go test -mod=readonly -race -json -count=1 -timeout=2m ./... 2>&1 | tee "$RUNNER_TEMP/sdk-tests.jsonl"
+          sdk_pipeline_status=("${PIPESTATUS[@]}")
+          set -e
+          go run -mod=readonly "$RUNNER_TEMP/sdk-test-summary.go" "$RUNNER_TEMP/sdk-tests.jsonl" "${sdk_pipeline_status[0]}"
+          test "${sdk_pipeline_status[1]}" -eq 0
+          git diff --exit-code -- go.mod go.sum
+          test -z "$(git status --porcelain)"
+      - name: Vet SDK and confirm payload remains unchanged
+        run: |
+          go vet -mod=readonly ./...
+          git diff --exit-code -- go.mod go.sum
+          test -z "$(git status --porcelain)"
+
+  legacy-source:
+    if: ${{ github.repository == 'b1ug/blink1-go' && github.ref == 'refs/heads/ci/b3-gid37-fixed-b3f2586-20261110' }}
+    name: Fixed b3 GID37 / ubuntu-22.04 / Go 1.13.15
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      SDK_RUNNER_LABEL: ubuntu-22.04
+      SDK_GO_LINE: "1.13.15"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: b3f2586cc73073a7a0432889ea14a18c13247f46
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.13.15"
+          cache: false
+      - name: Verify literal payload, dependency and actual Go 1.13 floor
+        run: |
+          set -euo pipefail
+
+          test "$(git rev-parse HEAD)" = b3f2586cc73073a7a0432889ea14a18c13247f46
+          test -z "$(git status --porcelain)"
+          test "$GITHUB_REPOSITORY" = b1ug/blink1-go
+          test "$GITHUB_REF" = refs/heads/ci/b3-gid37-fixed-b3f2586-20261110
+          printf 'Workflow event commit: %s\n' "$GITHUB_SHA"
+          printf 'Workflow file commit: %s\n' "$GITHUB_WORKFLOW_SHA"
+          printf 'Fixed SDK payload: '
+          git rev-parse HEAD
+          printf 'Runner label/name/os/arch: %s / %s / %s / %s\n' "$SDK_RUNNER_LABEL" "$RUNNER_NAME" "$RUNNER_OS" "$RUNNER_ARCH"
+          case "$SDK_RUNNER_LABEL" in
+            ubuntu-24.04|ubuntu-22.04) sdk_goos=linux; sdk_goarch=amd64; sdk_arch=X64 ;;
+            ubuntu-24.04-arm) sdk_goos=linux; sdk_goarch=arm64; sdk_arch=ARM64 ;;
+            macos-15) sdk_goos=darwin; sdk_goarch=arm64; sdk_arch=ARM64 ;;
+            macos-15-intel) sdk_goos=darwin; sdk_goarch=amd64; sdk_arch=X64 ;;
+            windows-2022) sdk_goos=windows; sdk_goarch=amd64; sdk_arch=X64 ;;
+            *) exit 1 ;;
+          esac
+          test "$RUNNER_ARCH" = "$sdk_arch"
+          test "$(go env GOOS)" = "$sdk_goos"
+          test "$(go env GOARCH)" = "$sdk_goarch"
+          test "$(go env CGO_ENABLED)" = 1
+          case "$SDK_GO_LINE" in
+            1.26.x) go version | grep -E 'go1[.]26[.][0-9]+ ' ;;
+            1.27.x) go version | grep -E 'go1[.]27[.][0-9]+ ' ;;
+            1.13.15) go version | grep -F 'go1.13.15 ' ;;
+            *) exit 1 ;;
+          esac
+          go version
+          go env GOOS GOARCH CGO_ENABLED CC
+          gcc --version
+          # These are Git source-object hashes, portable across checkout line endings.
+          test "$(git rev-parse HEAD:go.mod)" = d7a550600e5c80096d3d61e8f84228892b168606
+          test "$(git rev-parse HEAD:go.sum)" = 709f1f2ec59799bcbf901e2cfb26a1bc67e1d1e4
+          go mod download -json github.com/b1ug/gid@v0.0.3-0.20261109043911-37d7cfde72ed | tee "$RUNNER_TEMP/gid-download.json"
+          grep -F '"Sum": "h1:yxpXHZnzwCPfGfEfxYTeTJ6Pz72M1grVJ3EllxQEa38="' "$RUNNER_TEMP/gid-download.json"
+          grep -F '"GoModSum": "h1:b9pd+IB3F4qVXRRUOWgux7TWqxceIEGo/mhoBcOp9RM="' "$RUNNER_TEMP/gid-download.json"
+          go list -mod=readonly -m -json all
+          test "$(go list -mod=readonly -m -f '{{.Version}}|{{if .Replace}}replaced{{else}}no-replace{{end}}' github.com/b1ug/gid)" = 'v0.0.3-0.20261109043911-37d7cfde72ed|no-replace'
+          test -z "$(go list -mod=readonly -m -f '{{if .Replace}}{{.Path}}{{end}}' all)"
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
+          test -z "$(git status --porcelain)"
+      - name: Build native SDK with actual Go 1.13
+        run: go build -mod=readonly -v ./...
+      - name: Test source floor and record JSON test nodes without hardware
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/sdk-test-summary.go" <<'GO'
+          package main
+          import (
+           "bufio"
+           "encoding/json"
+           "fmt"
+           "os"
+           "strconv"
+           "strings"
+          )
+          type event struct { Action, Package, Test string }
+          func main() {
+           if len(os.Args)!=3 { panic("log path and command status required") }
+           status,err:=strconv.Atoi(os.Args[2]);if err!=nil {panic(err)}
+           input,err:=os.Open(os.Args[1]);if err!=nil {panic(err)};defer input.Close()
+           scan:=bufio.NewScanner(input);scan.Buffer(make([]byte,4096),4<<20)
+           passed,failed,skipped,top,packages,skippedPackages,nonJSON:=0,0,0,0,0,0,0
+           seen:=map[string]bool{}
+           for scan.Scan() {
+            var row event
+            if json.Unmarshal(scan.Bytes(),&row)!=nil {nonJSON++;continue}
+            if row.Test=="" {if row.Action=="pass" {packages++};if row.Action=="fail" {failed++};if row.Action=="skip" {skippedPackages++};continue}
+            if row.Action!="pass"&&row.Action!="fail"&&row.Action!="skip" {continue}
+            key:=row.Package+"/"+row.Test
+            if seen[key] {panic("duplicate terminal test node")};seen[key]=true
+            switch row.Action {case "pass":passed++;if !strings.Contains(row.Test,"/") {top++};case "fail":failed++;case "skip":skipped++}
+           }
+           if err:=scan.Err();err!=nil {panic(err)}
+           result:=map[string]interface{}{"event":"sdk_fixed_payload_test_summary","wrapper":os.Getenv("GITHUB_SHA"),"workflow_commit":os.Getenv("GITHUB_WORKFLOW_SHA"),"payload":"b3f2586cc73073a7a0432889ea14a18c13247f46","gid":"v0.0.3-0.20261109043911-37d7cfde72ed","runner":os.Getenv("SDK_RUNNER_LABEL"),"go_line":os.Getenv("SDK_GO_LINE"),"passed_nodes":passed,"top_level_passed":top,"failed_nodes_or_packages":failed,"skipped_nodes":skipped,"passed_packages":packages,"skipped_packages":skippedPackages,"non_json_lines":nonJSON,"test_exit":status}
+           if err:=json.NewEncoder(os.Stdout).Encode(result);err!=nil {panic(err)}
+           if status!=0||passed==0||packages==0||failed!=0||skipped!=0||skippedPackages!=0 {fmt.Fprintln(os.Stderr,"test command or bounded test evidence did not pass");os.Exit(1)}
+          }
+          GO
+          set +e
+          go test -mod=readonly -json -count=1 -timeout=2m ./... 2>&1 | tee "$RUNNER_TEMP/sdk-tests.jsonl"
+          sdk_pipeline_status=("${PIPESTATUS[@]}")
+          set -e
+          go run -mod=readonly "$RUNNER_TEMP/sdk-test-summary.go" "$RUNNER_TEMP/sdk-tests.jsonl" "${sdk_pipeline_status[0]}"
+          test "${sdk_pipeline_status[1]}" -eq 0
+          git diff --exit-code -- go.mod go.sum
+          test -z "$(git status --porcelain)"
