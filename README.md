@@ -88,6 +88,16 @@ func main() {
 
 For more examples, please refer to [go.dev](https://pkg.go.dev/github.com/b1ug/blink1-go#pkg-examples).
 
+## Pattern capability profiles
+
+`IdentifyPatternCapabilities(info, firmwareVersion)` describes fixed public
+Pattern storage evidence without opening or querying hardware. It distinguishes
+RAM from flash, MK3 Notes from playable rows, unknown values from zero/false,
+firmware applicability from operation qualification, and persistent startup or
+Notes side effects. All returned hardware qualifications remain unverified.
+Existing device commands are unchanged; this helper is not an upload or
+persistence API. See the [capability reference](docs/pattern-capabilities.md).
+
 ## Contributing
 
 Your contributions are greatly appreciated! Whether you spot a bug, propose an improvement, or wish to add a new feature, your contributions help make this package and blink(1) device better.
