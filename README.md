@@ -98,6 +98,15 @@ Notes side effects. All returned hardware qualifications remain unverified.
 Existing device commands are unchanged; this helper is not an upload or
 persistence API. See the [capability reference](docs/pattern-capabilities.md).
 
+## Raw Pattern inspection
+
+The local candidate's `Device.ReadPatternLineRaw` and `ReadPlaystateRaw` retain
+RAM-row and playback fields, actual GID response lengths, partial response bytes,
+and unknown tails without LED or playing-bool normalization. Unknown profiles and
+invalid RAM positions fail before I/O. There is no new retry, playback, persistence,
+or hardware qualification. Read the [raw inspection guide](docs/raw-pattern-inspection.md)
+before interpreting a snapshot as a sequence, completion state, or Flash content.
+
 ## Contributing
 
 Your contributions are greatly appreciated! Whether you spot a bug, propose an improvement, or wish to add a new feature, your contributions help make this package and blink(1) device better.
