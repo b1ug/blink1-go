@@ -19,7 +19,9 @@ var (
 	stateTextRegexPat *regexp.Regexp
 	colorRegexPats    = make(map[string]*regexp.Regexp)
 	colorRegexOrder   []string
-	fadeMsecRegexPats = make(map[int]*regexp.Regexp)
+	fadeTimeRegexPats []fadeTimePattern
+	immediateRegexPat *regexp.Regexp
+	zeroTimeRegexPat  *regexp.Regexp
 	ledIdxRegexPats   = make(map[int]*regexp.Regexp)
 
 	emptyStr string
@@ -30,14 +32,20 @@ var (
 	errNoFadeMatch   = errors.New("b1: no fade time match")
 	errNoLEDMatch    = errors.New("b1: no LED index match")
 	errBlankQuery    = errors.New("b1: blank query")
+	errAmbiguousFade = errors.New("b1: conflicting fade times")
 )
+
+type fadeTimePattern struct {
+	unit string
+	pat  *regexp.Regexp
+}
 
 func initRegex() {
 	// for simple patterns
 	repeatRegexPat = regexp.MustCompile(`\brepeat\s*[:=]*\s*(\d+|\bonce|\btwice|\bthrice|\bforever|\balways|\binfinite(?:ly)?)\b|\b(infinite(?:ly)?|forever|always|once|twice|thrice)\s+repeat\b`)
 	commentRegexPat = regexp.MustCompile(`(\/\/.*?$)`)
-	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*([^\s].*?[^\s])\s*$`)
-	stateTextRegexPat = regexp.MustCompile(`(?i)^#[0-9A-Fa-f]{6}L\dT\d+$`)
+	titleRegexPat = regexp.MustCompile(`(?i)\b(title|topic|idea|subject)\s*[:=]*\s*`)
+	stateTextRegexPat = regexp.MustCompile(`(?i)^#([0-9a-f]{6})L([+-]?\d+)T([+-]?\d+)$`)
 
 	// for colors
 	colorWords := make([]string, 0, len(presetColorMap))
@@ -54,10 +62,13 @@ func initRegex() {
 	colorRegexOrder = []string{"name", "rgb", "hsb", "hex6", "hex3", "off", "on"}
 
 	// for fade msec
-	fadeMsecRegexPats[0] = regexp.MustCompile(`\b(0|now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\s+now|swiftly|this\s+moment|no\s+time)\b`)
-	fadeMsecRegexPats[1] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(ms|millis|millisec|millisecs|msec|msecs|millisecond|milliseconds)\b`)
-	fadeMsecRegexPats[1000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*s(?:ec)?(?:ond)?(?:s)?\b`)
-	fadeMsecRegexPats[60000] = regexp.MustCompile(`\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)\b`)
+	immediateRegexPat = regexp.MustCompile(`\b(now|immediate(?:ly)?|instant(?:ly|aneous)?(?:ly)?|quick(?:ly)?|right\s+now|swiftly|this\s+moment|no\s+time)\b`)
+	zeroTimeRegexPat = regexp.MustCompile(`[+-]?\b0\b`)
+	fadeTimeRegexPats = []fadeTimePattern{
+		{"ms", regexp.MustCompile(`([+-]?\b\d+(?:\.\d+)?)\s*(ms|millis|millisec|millisecs|msec|msecs|millisecond|milliseconds)\b`)},
+		{"s", regexp.MustCompile(`([+-]?\b\d+(?:\.\d+)?)\s*s(?:ec)?(?:ond)?(?:s)?\b`)},
+		{"m", regexp.MustCompile(`([+-]?\b\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes)\b`)},
+	}
 
 	// for led index
 	ledIdxRegexPats[0] = regexp.MustCompile(`\b(?:all\s+(leds|led|light|lights)?|(?:all|both)?\s+(?:leds|lights)|both)\b`)
@@ -73,14 +84,13 @@ func ParseTitle(query string) (string, error) {
 
 	// match
 	q := strings.TrimSpace(query)
-	m := titleRegexPat.FindStringSubmatch(q)
-	if len(m) <= 2 {
-		// We now need match of length > 2 as our pattern has a second capture group
+	m := titleRegexPat.FindStringIndex(q)
+	if m == nil {
 		return emptyStr, errNoTitleMatch
 	}
 
 	// handle match
-	title := m[2]
+	title := strings.TrimSpace(q[m[1]:])
 	if title == emptyStr {
 		return emptyStr, errNoTitleMatch
 	}
@@ -145,10 +155,15 @@ func ParseColor(query string) (color.Color, error) {
 // ParseStateQuery parses the case-insensitive unstructured description of light state and returns the structured LightState.
 // The query can contain information about the color, fade time, and LED index. For example, "turn off all lights right now", "set led 1 to color #ff00ff over 2 sec", "#FF0000L1T500".
 // If the query is empty, it returns an error.
+// This is a field extractor, not a general natural-language command interpreter:
+// it does not interpret action verbs, negation, or multiple instructions.
 //
 // Color can be specified by name, hex code, or RGB/HSB values, e.g. "red", "#FF0000", "rgb(255,0,0)", "hsb(0,100,100)"
 //
 // Fade time can be specified by milliseconds, seconds, or minutes, e.g. "100ms", "1s", "1.5m", "now", "0s"
+// Explicit numeric times take precedence over immediate words. Repeated numeric times
+// must agree; conflicting, negative, or overflowing times return an error. A standalone
+// zero is an immediate time, but a zero inside a color or LED selector is not.
 //
 // LED index can be specified by number, name, or position, e.g. "led 1", "led 2", "top led", "second led", "led:all", "led:0"
 func ParseStateQuery(query string) (LightState, error) {
@@ -168,9 +183,8 @@ func ParseStateQuery(query string) (LightState, error) {
 	// attempt to parse full as state
 	if stateTextRegexPat.MatchString(query) {
 		var st LightState
-		if err := st.UnmarshalText([]byte(query)); err == nil {
-			return st, nil
-		}
+		err := st.UnmarshalText([]byte(query))
+		return st, err
 	}
 
 	// parse each part
@@ -227,19 +241,25 @@ func parseColorQuery(query string) (color.Color, error) {
 			}
 			return color.RGBA{R: r * 0x11, G: g * 0x11, B: b * 0x11, A: 0xff}, nil
 		case "rgb":
-			var r, g, b uint8
-			n, err := fmt.Sscanf(m[0], "rgb(%d,%d,%d)", &r, &g, &b)
-			if err != nil || n != 3 {
-				return nil, fmt.Errorf("invalid rgb color: %s - %w", val, err)
+			var rgb [3]uint8
+			for i := range rgb {
+				component, err := strconv.ParseUint(m[i+1], 10, 8)
+				if err != nil {
+					return nil, fmt.Errorf("invalid rgb color %q: %w", m[0], err)
+				}
+				rgb[i] = uint8(component)
 			}
-			return color.RGBA{R: r, G: g, B: b, A: 0xff}, nil
+			return color.RGBA{R: rgb[0], G: rgb[1], B: rgb[2], A: 0xff}, nil
 		case "hsb":
-			var h, s, b float64
-			n, err := fmt.Sscanf(m[0], "hsb(%f,%f,%f)", &h, &s, &b)
-			if err != nil || n != 3 {
-				return nil, fmt.Errorf("invalid hsb color: %s - %w", val, err)
+			var hsb [3]float64
+			for i := range hsb {
+				component, err := strconv.ParseFloat(m[i+1], 64)
+				if err != nil {
+					return nil, fmt.Errorf("invalid hsb color %q: %w", m[0], err)
+				}
+				hsb[i] = component
 			}
-			return convRGBToColor(convHSBToRGB(h, s, b)), nil
+			return convRGBToColor(convHSBToRGB(hsb[0], hsb[1], hsb[2])), nil
 		}
 	}
 
@@ -247,36 +267,63 @@ func parseColorQuery(query string) (color.Color, error) {
 }
 
 func parseFadeTime(query string) (time.Duration, error) {
-	// parse
-	for mul, pat := range fadeMsecRegexPats {
-		// skip zero values first
-		if mul == 0 {
-			continue
-		}
-		m := pat.FindStringSubmatch(query)
-
-		// not match
-		if m == nil {
-			continue
-		}
-
-		// handle match
-		if m != nil {
-			if len(m) >= 2 {
-				val, err := strconv.ParseFloat(m[1], 64)
-				if err != nil {
-					return 0, err
-				}
-				return time.Duration(val*float64(mul)) * time.Millisecond, nil
+	var duration time.Duration
+	found := false
+	for _, pattern := range fadeTimeRegexPats {
+		for _, match := range pattern.pat.FindAllStringSubmatchIndex(query, -1) {
+			start, end := match[2], match[3]
+			number := query[start:end]
+			if invalidTimePrefix(query, start) || strings.HasPrefix(number, "-") {
+				return 0, fmt.Errorf("b1: invalid fade time %q", query[match[0]:match[1]])
 			}
+			value, err := time.ParseDuration(number + pattern.unit)
+			if err != nil {
+				return 0, fmt.Errorf("b1: invalid fade time %q: %w", query[match[0]:match[1]], err)
+			}
+			if found && value != duration {
+				return 0, errAmbiguousFade
+			}
+			duration, found = value, true
 		}
 	}
-
-	// handle zero values
-	if m := fadeMsecRegexPats[0].FindStringSubmatch(query); m != nil {
+	// Do not interpret a color channel or LED number as a standalone zero time.
+	for _, pat := range []*regexp.Regexp{colorRegexPats["rgb"], colorRegexPats["hsb"], ledIdxRegexPats[12]} {
+		query = pat.ReplaceAllStringFunc(query, func(text string) string {
+			return strings.Repeat(" ", len(text))
+		})
+	}
+	foundZero := false
+	for _, match := range zeroTimeRegexPat.FindAllStringIndex(query, -1) {
+		if (match[0] > 0 && query[match[0]-1] == '.') || (match[1] < len(query) && query[match[1]] == '.') {
+			continue
+		}
+		if invalidTimePrefix(query, match[0]) || query[match[0]] == '-' {
+			return 0, fmt.Errorf("b1: invalid fade time %q", query[match[0]:match[1]])
+		}
+		foundZero = true
+	}
+	if found {
+		// LightState text and the device use milliseconds. Preserve historical truncation.
+		return duration.Truncate(time.Millisecond), nil
+	}
+	if foundZero || immediateRegexPat.MatchString(query) {
 		return 0, nil
 	}
 	return 0, errNoFadeMatch
+}
+
+// A sign or decimal point before a matched number means the regex found a suffix
+// of an invalid number (for example, "- 1s" or "1.2.3s"). Never use that suffix.
+func invalidTimePrefix(query string, start int) bool {
+	if start > 0 && query[start-1] == '.' {
+		return true
+	}
+	prefix := strings.TrimRight(query[:start], " \t\r\n")
+	if prefix == "" {
+		return false
+	}
+	last := prefix[len(prefix)-1]
+	return last == '-' || last == '+'
 }
 
 func parseLEDIndex(query string) (LEDIndex, error) {
