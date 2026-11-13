@@ -85,11 +85,12 @@ func (st DeviceLightState) String() string {
 // The FadeTime field, a value of type time.Duration, represents the fade time to the LightState, specified in duration.
 //
 // This struct is serialized in string format with three components, separated by specific letters for ease of understanding and clean formatting:
-//    #RRGGBBL{0,1,2}T{fade time in milliseconds}
 //
-//    1. Color is converted to hexadecimal (HEX) representation using convColorToHex function;
-//    2. LED is represented by its corresponding LEDIndex value prefixed by 'L';
-//    3. FadeTime is represented by its millisecond value prefixed by 'T';
+//	#RRGGBBL{0,1,2}T{fade time in milliseconds}
+//
+//	1. Color is converted to hexadecimal (HEX) representation using convColorToHex function;
+//	2. LED is represented by its corresponding LEDIndex value prefixed by 'L';
+//	3. FadeTime is represented by its millisecond value prefixed by 'T';
 //
 // For example, a reddish color (Hex #FF0000), targeting LED 1, with a fade time of 200ms would be serialized as "#FF0000L1T200".
 type LightState struct {
@@ -112,21 +113,30 @@ func (st *LightState) UnmarshalText(text []byte) error {
 	if len(text) == 0 {
 		return errEmptyState
 	}
-	// parse
-	var (
-		s             = string(text)
-		r, g, b       uint8
-		led           LEDIndex
-		fadeTimeMilli int
-	)
-	if _, err := fmt.Sscanf(strings.ToUpper(s), "#%02X%02X%02XL%dT%d", &r, &g, &b, &led, &fadeTimeMilli); err != nil {
-		return fmt.Errorf("invalid format for LightState: %w", err)
+	regexOnce.Do(initRegex)
+	match := stateTextRegexPat.FindStringSubmatch(string(text))
+	if match == nil {
+		return errors.New("invalid format for LightState: expected #RRGGBBL{0,1,2}T{milliseconds}")
+	}
+	led, err := strconv.ParseInt(match[2], 10, 64)
+	if err != nil || led < int64(LEDAll) || led > int64(LED2) {
+		return fmt.Errorf("invalid LED index for LightState: %q", match[2])
+	}
+	fadeTimeMilli, err := strconv.ParseInt(match[3], 10, 64)
+	const maxFadeTimeMilli = int64((1<<63 - 1) / time.Millisecond)
+	if err != nil || strings.HasPrefix(match[3], "-") || fadeTimeMilli > maxFadeTimeMilli {
+		return fmt.Errorf("invalid fade time for LightState: %q", match[3])
+	}
+	var r, g, b uint8
+	if _, err := fmt.Sscanf(match[1], "%02X%02X%02X", &r, &g, &b); err != nil {
+		return fmt.Errorf("invalid color for LightState: %w", err)
 	}
 	// fill in
-	*st = LightState{}
-	st.Color = convRGBToColor(r, g, b)
-	st.LED = led
-	st.FadeTime = time.Duration(fadeTimeMilli) * time.Millisecond
+	*st = LightState{
+		Color:    convRGBToColor(r, g, b),
+		LED:      LEDIndex(led),
+		FadeTime: time.Duration(fadeTimeMilli) * time.Millisecond,
+	}
 	return nil
 }
 
