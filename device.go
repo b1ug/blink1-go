@@ -14,6 +14,7 @@ var (
 	errNilDeviceInfo  = errors.New("b1: nil device info")
 	errNotBlink1      = errors.New("b1: device is not blink(1)")
 	errDeviceNotFound = fmt.Errorf("b1: device not found")
+	errDeviceClosed   = errors.New("b1: device closed")
 )
 
 // Device represents a blink(1) device and provides low-level APIs using HID commands for direct control.
@@ -90,10 +91,20 @@ func (b1 *Device) Close() {
 	}
 }
 
+// isClosed reports whether the underlying HID handle has been released.
+func (b1 *Device) isClosed() bool {
+	b1.mu.Lock()
+	defer b1.mu.Unlock()
+	return b1.dev == nil
+}
+
 // write sends the specified buffer as feature report to the device.
 func (b1 *Device) write(buf []byte) error {
 	b1.mu.Lock()
 	defer b1.mu.Unlock()
+	if b1.dev == nil {
+		return errDeviceClosed
+	}
 
 	// send feature report
 	if err := b1.dev.WriteFeature(buf); err != nil {
@@ -106,6 +117,9 @@ func (b1 *Device) write(buf []byte) error {
 func (b1 *Device) doubleWrite(buf1, buf2 []byte) error {
 	b1.mu.Lock()
 	defer b1.mu.Unlock()
+	if b1.dev == nil {
+		return errDeviceClosed
+	}
 
 	// send feature reports
 	if err := b1.dev.WriteFeature(buf1); err != nil {
@@ -121,6 +135,9 @@ func (b1 *Device) doubleWrite(buf1, buf2 []byte) error {
 func (b1 *Device) read(buf []byte) error {
 	b1.mu.Lock()
 	defer b1.mu.Unlock()
+	if b1.dev == nil {
+		return errDeviceClosed
+	}
 
 	// send feature report
 	_ = b1.dev.WriteFeature(buf)
@@ -136,6 +153,9 @@ func (b1 *Device) read(buf []byte) error {
 func (b1 *Device) delayRead(buf []byte, delayMs int) error {
 	b1.mu.Lock()
 	defer b1.mu.Unlock()
+	if b1.dev == nil {
+		return errDeviceClosed
+	}
 
 	// send feature report
 	_ = b1.dev.WriteFeature(buf)

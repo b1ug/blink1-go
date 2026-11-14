@@ -197,8 +197,11 @@ func (b1 *Device) SavePattern() error {
 	buf[4] = 0xCA
 	buf[5] = 0xFE
 
-	// execute and will always return error, because of issue with flash programming timing out USB
-	_ = b1.write(buf)
+	// Flash programming may time out USB, so its I/O error is ignored. A closed
+	// handle must still be reported because no programming was attempted.
+	if err := b1.write(buf); err == errDeviceClosed {
+		return err
+	}
 	return nil
 }
 
