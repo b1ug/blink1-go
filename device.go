@@ -3,6 +3,7 @@ package blink1
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -131,43 +132,48 @@ func (b1 *Device) doubleWrite(buf1, buf2 []byte) error {
 	return nil
 }
 
-// read sends the feature report to the device and gets the response and writes it to the specified buffer.
-func (b1 *Device) read(buf []byte) error {
-	b1.mu.Lock()
-	defer b1.mu.Unlock()
-	if b1.dev == nil {
-		return errDeviceClosed
-	}
-
-	// send feature report
-	_ = b1.dev.WriteFeature(buf)
-
-	// get feature report
-	if _, err := b1.dev.ReadFeature(buf); err != nil {
-		return fmt.Errorf("b1: read fail: %w", err)
-	}
-	return nil
+// read exchanges a feature request and response. minResponseSize is the number
+// of bytes needed for the command's parsed fields, including the ID slot.
+func (b1 *Device) read(buf []byte, minResponseSize int) error {
+	return b1.delayRead(buf, 0, minResponseSize)
 }
 
-// delayWrite works like read but waits for the specified milliseconds before reading the response.
-func (b1 *Device) delayRead(buf []byte, delayMs int) error {
+// delayRead works like read but waits after a successful write before reading.
+func (b1 *Device) delayRead(buf []byte, delayMs, minResponseSize int) error {
 	b1.mu.Lock()
 	defer b1.mu.Unlock()
 	if b1.dev == nil {
 		return errDeviceClosed
 	}
+	if len(buf) == 0 || minResponseSize < 1 || minResponseSize > len(buf) {
+		return errors.New("b1: invalid feature response buffer size")
+	}
 
-	// send feature report
-	_ = b1.dev.WriteFeature(buf)
+	if err := b1.dev.WriteFeature(buf); err != nil {
+		return fmt.Errorf("b1: write request fail: %w", err)
+	}
 
-	// wait
 	if delayMs > 0 {
 		time.Sleep(time.Duration(delayMs) * time.Millisecond)
 	}
 
-	// get feature report
-	if _, err := b1.dev.ReadFeature(buf); err != nil {
+	// Only the report ID selects the response. Do not let fields left in the
+	// request (such as a pattern position) masquerade as returned device data.
+	response := make([]byte, len(buf))
+	response[0] = buf[0]
+	n, err := b1.dev.ReadFeature(response)
+	if err != nil {
 		return fmt.Errorf("b1: read fail: %w", err)
+	}
+	if n < 0 || n > len(response) {
+		return fmt.Errorf("b1: invalid feature response length %d for buffer size %d", n, len(response))
+	}
+	if n < minResponseSize {
+		return fmt.Errorf("b1: short feature response: got %d bytes, need at least %d: %w", n, minResponseSize, io.ErrUnexpectedEOF)
+	}
+	copy(buf, response[:n])
+	for i := n; i < len(buf); i++ {
+		buf[i] = 0
 	}
 	return nil
 }
