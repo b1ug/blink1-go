@@ -19,7 +19,7 @@ Far from just another SDK, `blink1-go` was conceived and designed to overcome th
 
 4. **Color Helpers:** `blink1-go` includes helpers offering predefined colors and color-conversion functionalities, enabling users to easily customize their device colors.
 
-5. **Sophisticated Schemata:** It boasts highly refined schemata for pattern and state representation. Coupled with effective serialization and deserialization methods, it ensures seamless compatibility with both JSON and natural language (English), thus offering a more human-readable and comfortable programming experience.
+5. **Typed States and Patterns:** State and pattern values support explicit text/JSON codecs. A documented Set/Off/Fade grammar returns a ready-to-use `LightState` without guessing general natural-language intent.
 
 ## Installation
 
@@ -48,10 +48,76 @@ current native dependency or OS supports that old toolchain.
 
 Actions are pinned to reviewed release commits, checkout credentials are not
 persisted, and jobs use read-only repository permissions. Module resolution
-uses the committed GID version with `GOWORK=off` and `-mod=readonly`; it does not
-use a local workspace replacement or upgrade dependencies.
+uses the committed GID and colorkit versions with `GOWORK=off` and
+`-mod=readonly`; it does not use a local workspace replacement or upgrade
+dependencies.
+
+## Hexadecimal color helpers
+
+`HexToColor` and `RGBToHex` use the pure-Go
+[`colorkit v0.1.0`](https://github.com/b1ug/colorkit/tree/v0.1.0) hexadecimal core.
+`HexToColor` accepts three or six hex digits, with an optional `#`, mixed case,
+and surrounding ASCII whitespace. The original input is limited to 64 ASCII
+bytes and must contain one complete literal. Internal whitespace, trailing
+non-hex content, alpha, and color names are rejected. This fixes cases such as
+`"12 345"` that the earlier formatted scanner could consume as three channels.
+Errors return a nil color, match `colorkit.ErrSyntax` through `errors.Is`, and
+expose `*colorkit.Error` through `errors.As`; their text is not a stable contract.
+
+Successful results remain concrete `color.RGBA` values with full opacity.
+`RGBToHex`, the existing state text format, and SDK hexadecimal output retain
+uppercase digits. Complete command/color parsing uses the same colorkit values
+and adapts them inside the SDK, without asking callers to convert types.
+See [single-state parsing](docs/state-parser.md) for grammar, defaults,
+diagnostics, and the documented CSS color-name migration.
 
 ## Usage
+
+### Pass color values directly
+
+`colorkit.RGB8` implements Go's `image/color.Color` interface, which is already
+accepted by `NewLightState` and `Controller.PlayColor`. Pass the value directly;
+there is no need to unpack R/G/B or construct another color type.
+
+```go
+import (
+	"fmt"
+	"time"
+
+	b1 "github.com/b1ug/blink1-go"
+	"github.com/b1ug/colorkit"
+)
+
+light, err := colorkit.Parse("#abc")
+if err != nil {
+	return err
+}
+state := b1.NewLightState(light, 250*time.Millisecond, b1.LED1)
+fmt.Println(state) // 🎨(color=#AABBCC led=1 fade=250ms)
+```
+
+This fragment belongs in a function that returns an error. With an already
+opened controller, `controller.PlayColor(light)` accepts the same value.
+To create it from HSV, use:
+
+```go
+light, err := (colorkit.HSV{H: 210, S: 75, V: 90}).RGB8()
+```
+
+Handle the error, then pass `light` directly to either SDK API. H uses degrees;
+S and V use percentages. For hexadecimal input through the existing SDK API,
+`light, err := b1.HexToColor("abc")` is also sufficient.
+
+`PlayColor` and `PlayState` apply the controller's Gamma setting, enabled by
+default. `PlayRGB` sends raw channels and bypasses Gamma; unpacking RGB8 into
+`PlayRGB` is not equivalent to passing the color directly.
+
+The runnable examples verify value conversion and `LightState` formatting
+without hardware. The controller example is compiled but has no `Output`
+comment, so `go test` does not execute its device operations. Calling
+`colorkit.Parse`, `ParseColor`, and `GetColorByName` share the CSS name table.
+The four historical name changes and five retained Go-only constants are
+listed in [the migration notes](docs/state-parser.md#compact-data-and-behavior-changes).
 
 Here's how to use the *Device API* to instantly set all LEDs to blue:
 
@@ -94,11 +160,13 @@ func main() {
 }
 ```
 
-To extract one light state from an English field query, you can try this:
+### Parse a complete command into a ready-to-use state
+
+The SDK handles the translation; there is no intermediate state DTO to copy:
 
 ```go
 func main() {
-	st, err := b1.ParseStateQuery("Fade the first LED to blue in 1.5 seconds.")
+	st, err := b1.ParseStateQuery("fade to blue over 1.5s on led 1")
 	if err != nil {
 		panic(err)
 	}
@@ -106,18 +174,17 @@ func main() {
 }
 ```
 
-`ParseStateQuery` extracts a color, fade time and LED selector; all three are
-required. Parsing does not open a device or change the light. This helper does
-not interpret action verbs, negation or multiple instructions, so arbitrary
-natural-language instructions should not be treated as executable commands.
+`set red` and `off` use immediate output and default to LED 0. Fade requires
+an explicit duration; `led=1 color=red fade=1s` is the exact three-key form.
+All meaningful input must be consumed: unknown text, negation, duplicate fields,
+and unsupported effects return `*ParseError` and a zero state. Parsed durations
+must use exact 10ms units up to 655350ms; they are not rounded or clipped.
 
-Explicit numeric times take precedence over immediate words such as `now`.
-Repeated numeric times must agree (`1s` and `1000ms` agree); conflicting,
-negative or overflowing times return an error. A standalone `0` or `time=0`
-means immediate, while zero inside `led 0` or an RGB/HSB color does not supply a
-missing fade time. Fractional milliseconds retain the historical truncation to
-whole milliseconds. Existing color names and RGB/HSB conversion semantics are
-unchanged.
+The returned state goes directly to `controller.PlayState(st)`. Parsing does not
+open a device or change the light. Parse before opening hardware; keep a
+controller open when processing multiple commands. Higher-level effects and
+holds belong to nb1's Action/Sequence layer, not a single `LightState`.
+See [the full grammar and error contract](docs/state-parser.md).
 
 For more examples, please refer to [go.dev](https://pkg.go.dev/github.com/b1ug/blink1-go#pkg-examples).
 

@@ -1,18 +1,18 @@
 package blink1
 
 import (
-	"errors"
-	"fmt"
 	"image/color"
 	"strings"
 	"time"
 
+	"github.com/b1ug/colorkit"
 	hid "github.com/b1ug/gid"
 )
 
 // methods in this file serve as public helper functions
 
-// Preload triggers the initialization of the parsers and color names.
+// Preload initializes the metadata-helper and compact-state regular expressions.
+// Complete color and command parsing does not require preloading.
 // It's optional to call this function, and it's safe to call it multiple times.
 // Currently there is no noticeable performance gain from calling this function before using other APIs.
 func Preload() {
@@ -79,35 +79,34 @@ func ColorToHex(cl color.Color) string {
 }
 
 // HexToColor converts hex string to color.Color. The hex string can be in the format of #RRGGBB or #RGB or RRGGBB or RGB (case insensitive).
+// It accepts surrounding ASCII whitespace and requires the complete input to be
+// one hexadecimal literal. The original input is limited to 64 ASCII bytes.
+// Success returns color.RGBA; errors support errors.Is/As with colorkit errors.
 // e.g. "#FF0000" -> color.RGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff}
 // However, if you want to convert color names to color.Color, use GetColorByName() instead.
 // And if your input string is more complex and diverse than hex or names, use ParseColor() instead.
 func HexToColor(hex string) (color.Color, error) {
-	if len(hex) < 3 {
-		return nil, errors.New("invalid hex: too short")
+	rgb, err := parseHexColor(hex)
+	if err != nil {
+		return nil, err
 	}
-	// remove leading #
-	if strings.HasPrefix(hex, "#") {
-		hex = hex[1:]
-	}
-	// parse
-	var r, g, b uint8
-	switch len(hex) {
-	case 3:
-		n, err := fmt.Sscanf(hex, "%1X%1X%1X", &r, &g, &b)
-		if err != nil || n != 3 {
-			return nil, fmt.Errorf("invalid #RGB hex: %s - %w", hex, err)
+	return convRGBToColor(rgb.R, rgb.G, rgb.B), nil
+}
+
+// parseHexColor applies the SDK's optional-prefix grammar once. Keeping the
+// RGB8 result avoids converting through color.RGBA and 16-bit channels when
+// a caller requested three RGB bytes directly.
+func parseHexColor(hex string) (colorkit.RGB8, error) {
+	literal := hex
+	// Add the optional prefix only after respecting the original input bound.
+	// Oversized input reaches the core unchanged so it returns its typed error.
+	if len(hex) <= 64 {
+		trimmed := strings.Trim(hex, " \t\r\n\v\f")
+		if !strings.HasPrefix(trimmed, "#") {
+			literal = "#" + trimmed
 		}
-		return color.RGBA{R: r * 0x11, G: g * 0x11, B: b * 0x11, A: 0xff}, nil
-	case 6:
-		n, err := fmt.Sscanf(hex, "%02X%02X%02X", &r, &g, &b)
-		if err != nil || n != 3 {
-			return nil, fmt.Errorf("invalid #RRGGBB hex: %s - %w", hex, err)
-		}
-		return color.RGBA{R: r, G: g, B: b, A: 0xff}, nil
-	default:
-		return nil, fmt.Errorf("invalid hex format: %s", hex)
 	}
+	return colorkit.ParseHex(literal)
 }
 
 // RGBToColor converts 8-bit RGB values to color.Color.
@@ -122,19 +121,18 @@ func ColorToRGB(cl color.Color) (r, g, b uint8) {
 	return convColorToRGB(cl)
 }
 
-// HexToRGB converts hex string to 8-bit RGB values. The underlying implementation is HexToColor() + ColorToRGB().
+// HexToRGB converts hex string to 8-bit RGB values. It shares the same complete-literal validation as HexToColor().
 // e.g. "#FF0000" -> 0xff, 0x00, 0x00
 func HexToRGB(hex string) (r, g, b uint8, err error) {
-	cl, err := HexToColor(hex)
+	rgb, err := parseHexColor(hex)
 	if err != nil {
-		return
+		return 0, 0, 0, err
 	}
-	r, g, b = convColorToRGB(cl)
-	return
+	return rgb.R, rgb.G, rgb.B, nil
 }
 
 // RGBToHex converts 8-bit RGB values to hex string with leading #.
 // e.g. 0xff, 0x00, 0x00 -> "#FF0000"
 func RGBToHex(r, g, b uint8) string {
-	return fmt.Sprintf("#%02X%02X%02X", r, g, b)
+	return strings.ToUpper(colorkit.RGB8{R: r, G: g, B: b}.Hex())
 }

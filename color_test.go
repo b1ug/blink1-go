@@ -19,31 +19,18 @@ func TestGetColorNames(t *testing.T) {
 	if len(ns1) == 0 {
 		t.Errorf("GetColorNames() should return non-empty slice, got %v", ns1)
 	}
-	if ns1[0] != "apricot" {
-		t.Errorf("GetColorNames() should return apricot as first element, got %v", ns1[0])
+	if ns1[0] != "aliceblue" {
+		t.Errorf("GetColorNames() should return aliceblue as first element, got %v", ns1[0])
 	}
 
 	ns1[0] = "foo"
 	ns2[0] = "bar"
 	ns3 := b1.GetColorNames()
-	if ns3[0] != "apricot" {
+	if ns3[0] != "aliceblue" {
 		t.Errorf("GetColorNames() should not be mutable, got %v", ns3[0])
 	}
 
-	except := []string{"aqua", "fuchsia", "grey"}
 	for _, n := range ns3 {
-		// skip excepted names
-		ignored := false
-		for _, e := range except {
-			if n == e {
-				ignored = true
-				break
-			}
-		}
-		if ignored {
-			continue
-		}
-
 		// get color by name
 		c, ok := b1.GetColorByName(n)
 		if !ok {
@@ -54,9 +41,10 @@ func TestGetColorNames(t *testing.T) {
 		if !ok2 {
 			t.Errorf("GetNameByColor(%v) should return true", c)
 		}
-		// compare names
-		if n != n2 {
-			t.Errorf("GetNameByColor(%v) should return %q, got %q", c, n, n2)
+		// Aliases may have different names; the reverse result must preserve RGB.
+		canonical, ok := b1.GetColorByName(n2)
+		if !ok || b1.ColorToHex(canonical) != b1.ColorToHex(c) {
+			t.Errorf("GetNameByColor(%v) returned %q with a different color", c, n2)
 		}
 	}
 }
