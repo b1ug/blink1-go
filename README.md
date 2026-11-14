@@ -31,6 +31,26 @@ go get -u github.com/b1ug/blink1-go@latest
 
 Please note that Go version 1.13 or higher and Cgo is required.
 
+## Continuous integration
+
+The native CI matrix builds the SDK and runs its software tests with the race
+detector and `go vet` on Ubuntu 24.04 (amd64/arm64), macOS 15 (arm64/Intel), and
+Windows Server 2022 (amd64), using Go 1.26.x and 1.27.x. Go 1.13.15 source
+compatibility is checked separately on Ubuntu 22.04. These are configured
+checks; a result applies only to the exact commit that ran successfully.
+
+The default tests cover color conversion, parsing, and serialization without
+opening hardware. Hardware examples without an `Output` comment are compiled
+but are not executed by `go test`. CI does not enumerate or open USB devices
+and does not verify physical unplug/replug, older operating systems, Windows
+386, or blink(1) mk3. Passing the Go 1.13 source check is not a claim that every
+current native dependency or OS supports that old toolchain.
+
+Actions are pinned to reviewed release commits, checkout credentials are not
+persisted, and jobs use read-only repository permissions. Module resolution
+uses the committed GID version with `GOWORK=off` and `-mod=readonly`; it does not
+use a local workspace replacement or upgrade dependencies.
+
 ## Usage
 
 Here's how to use the *Device API* to instantly set all LEDs to blue:
