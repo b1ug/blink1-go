@@ -254,6 +254,9 @@ func (b1 *Device) GetVersion() (ver int, err error) {
 	}
 
 	// parse result
+	if buf[3] < '0' || buf[3] > '9' || buf[4] < '0' || buf[4] > '9' {
+		return 0, fmt.Errorf("b1: invalid firmware version digits: %02x %02x", buf[3], buf[4])
+	}
 	ver = int(buf[3]-'0')*100 + int(buf[4]-'0')
 	return
 }

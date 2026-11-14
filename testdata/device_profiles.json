@@ -1,0 +1,74 @@
+[
+  {
+    "name": "current mk2 metadata, fw204",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 2, "Product": "blink(1) mk2", "SerialNumber": "20005601", "FeatureReportLength": 9},
+    "firmware": 204,
+    "want": {"model": "mk2", "generation": 2, "usb_version": 2, "reason": "consistent-known-metadata", "report_ids": [1], "buffer_lengths": [9]}
+  },
+  {
+    "name": "mk2 source metadata, uppercase hex and unknown backend report length",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 2, "Product": "blink(1) mk2", "SerialNumber": "2ABCDEF0", "FeatureReportLength": 0},
+    "firmware": 205,
+    "want": {"model": "mk2", "generation": 2, "usb_version": 2, "reason": "consistent-known-metadata", "report_ids": [1], "buffer_lengths": [9]}
+  },
+  {
+    "name": "mk3 fw303 descriptor is 0x0101, not generation 257",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 257, "Product": "blink(1) mk3", "SerialNumber": "30001234", "FeatureReportLength": 61},
+    "firmware": 303,
+    "want": {"model": "mk3", "generation": 3, "usb_version": 257, "reason": "consistent-known-metadata", "report_ids": [1, 2], "buffer_lengths": [9, 61]}
+  },
+  {
+    "name": "mk3 fw304 protocol fixture, no physical verification",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 257, "Product": "blink(1) mk3", "SerialNumber": "3abcdef0", "FeatureReportLength": 61},
+    "firmware": 304,
+    "want": {"model": "mk3", "generation": 3, "usb_version": 257, "reason": "consistent-known-metadata", "report_ids": [1, 2], "buffer_lengths": [9, 61]}
+  },
+  {
+    "name": "mk3 metadata without a firmware query is still only inferred",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 257, "Product": "blink(1) mk3", "SerialNumber": "30001234"},
+    "firmware": 0,
+    "want": {"model": "mk3", "generation": 3, "usb_version": 257, "reason": "consistent-known-metadata", "report_ids": [1, 2], "buffer_lengths": [9, 61]}
+  },
+  {
+    "name": "mk3 serial conflicts with mk2 USB version",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 2, "Product": "blink(1) mk3", "SerialNumber": "30001234"},
+    "firmware": 304,
+    "want": {"model": "unknown", "generation": 0, "usb_version": 2, "reason": "missing-or-conflicting-usb-version", "report_ids": [], "buffer_lengths": []}
+  },
+  {
+    "name": "mk3 serial conflicts with mk2 product label",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 257, "Product": "blink(1) mk2", "SerialNumber": "30001234"},
+    "firmware": 304,
+    "want": {"model": "unknown", "generation": 0, "usb_version": 257, "reason": "missing-or-conflicting-product", "report_ids": [], "buffer_lengths": []}
+  },
+  {
+    "name": "mk2 metadata conflicts with mk3 firmware",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 2, "Product": "blink(1) mk2", "SerialNumber": "20005601"},
+    "firmware": 304,
+    "want": {"model": "unknown", "generation": 0, "usb_version": 2, "reason": "invalid-or-conflicting-firmware", "report_ids": [], "buffer_lengths": []}
+  },
+  {
+    "name": "217 cannot come from two validated ASCII digits",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 2, "Product": "blink(1) mk2", "SerialNumber": "20005601"},
+    "firmware": 217,
+    "want": {"model": "unknown", "generation": 0, "usb_version": 2, "reason": "invalid-or-conflicting-firmware", "report_ids": [], "buffer_lengths": []}
+  },
+  {
+    "name": "unknown future serial prefix does not default to mk3",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 257, "Product": "blink(1) mk3", "SerialNumber": "40001234"},
+    "firmware": 304,
+    "want": {"model": "unknown", "generation": 0, "usb_version": 257, "reason": "unknown-serial-prefix", "report_ids": [], "buffer_lengths": []}
+  },
+  {
+    "name": "missing product is insufficient metadata",
+    "metadata": {"VendorID": 10168, "ProductID": 493, "VersionNumber": 2, "SerialNumber": "20005601"},
+    "firmware": 204,
+    "want": {"model": "unknown", "generation": 0, "usb_version": 2, "reason": "missing-or-conflicting-product", "report_ids": [], "buffer_lengths": []}
+  },
+  {
+    "name": "a product label cannot override foreign VID PID",
+    "metadata": {"VendorID": 1, "ProductID": 493, "VersionNumber": 2, "Product": "blink(1) mk2", "SerialNumber": "20005601"},
+    "firmware": 204,
+    "want": {"model": "unknown", "generation": 0, "usb_version": 2, "reason": "not-blink1-vid-pid", "report_ids": [], "buffer_lengths": []}
+  }
+]

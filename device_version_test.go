@@ -41,3 +41,26 @@ func TestGetVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestGetVersionRejectsNonDigits(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		major, minor byte
+	}{
+		{"major before zero", '/', '4'},
+		{"major after nine", ':', '4'},
+		{"major NUL", 0, '4'},
+		{"minor after nine looks like 210", '2', ':'},
+		{"minor letter looks like 217", '2', 'A'},
+		{"minor NUL", '2', 0},
+		{"minor non ASCII", '2', 0xff},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &Device{dev: &firmwareVersionHID{major: tc.major, minor: tc.minor}}
+			got, err := d.GetVersion()
+			if err == nil || got != 0 {
+				t.Fatalf("malformed digits produced version %d, error %v", got, err)
+			}
+		})
+	}
+}
