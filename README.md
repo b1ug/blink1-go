@@ -94,7 +94,7 @@ func main() {
 }
 ```
 
-If you want to get the state from a natural language query, you can try this:
+To extract one light state from an English field query, you can try this:
 
 ```go
 func main() {
@@ -105,6 +105,19 @@ func main() {
 	fmt.Println(st)
 }
 ```
+
+`ParseStateQuery` extracts a color, fade time and LED selector; all three are
+required. Parsing does not open a device or change the light. This helper does
+not interpret action verbs, negation or multiple instructions, so arbitrary
+natural-language instructions should not be treated as executable commands.
+
+Explicit numeric times take precedence over immediate words such as `now`.
+Repeated numeric times must agree (`1s` and `1000ms` agree); conflicting,
+negative or overflowing times return an error. A standalone `0` or `time=0`
+means immediate, while zero inside `led 0` or an RGB/HSB color does not supply a
+missing fade time. Fractional milliseconds retain the historical truncation to
+whole milliseconds. Existing color names and RGB/HSB conversion semantics are
+unchanged.
 
 For more examples, please refer to [go.dev](https://pkg.go.dev/github.com/b1ug/blink1-go#pkg-examples).
 
