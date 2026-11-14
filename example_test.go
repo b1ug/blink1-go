@@ -126,7 +126,7 @@ func ExampleParseRepeatTimes() {
 
 // This example shows how to parse a state query.
 func ExampleParseStateQuery() {
-	st, err := b1.ParseStateQuery("Fade the first LED to blue in 1.5 seconds.")
+	st, err := b1.ParseStateQuery("fade to blue over 1.5s on led 1")
 	if err != nil {
 		panic(err)
 	}

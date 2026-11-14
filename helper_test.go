@@ -194,7 +194,7 @@ func TestSerializeStateSequence(t *testing.T) {
 	if err != nil {
 		t.Errorf("%T.MarshalText() got error = %v, want nil", s1, err)
 	}
-	if r := "#FF0000L1T256;#00FF00L2T512;#0000FFL0T1024"; string(t1) != r {
+	if r := "#FF0000L1T256;#008000L2T512;#0000FFL0T1024"; string(t1) != r {
 		t.Errorf("%T.MarshalText() got result = %v, want %v", s1, string(t1), r)
 	}
 	t.Logf("%v %T.MarshalText() = %v", s1, s1, string(t1))
@@ -204,7 +204,7 @@ func TestSerializeStateSequence(t *testing.T) {
 	if err != nil {
 		t.Errorf("json.Marshal(%v) got error = %v, want nil", s1, err)
 	}
-	if r := `"#FF0000L1T256;#00FF00L2T512;#0000FFL0T1024"`; string(j1) != r {
+	if r := `"#FF0000L1T256;#008000L2T512;#0000FFL0T1024"`; string(j1) != r {
 		t.Errorf("json.Marshal(%v) got result = %v, want %v", s1, string(j1), r)
 	}
 	t.Logf("%v json.Marshal() = %v", s1, string(j1))
@@ -388,12 +388,12 @@ func TestHexToColor(t *testing.T) {
 			want: color.RGBA{R: 0x11, G: 0x22, B: 0x33, A: 0xff},
 		},
 		{
-			hex:     "#FF1234 ",
-			wantErr: true,
+			hex:  "#FF1234 ",
+			want: color.RGBA{R: 0xff, G: 0x12, B: 0x34, A: 0xff},
 		},
 		{
-			hex:     " #FF1234",
-			wantErr: true,
+			hex:  " #FF1234",
+			want: color.RGBA{R: 0xff, G: 0x12, B: 0x34, A: 0xff},
 		},
 		{
 			hex:     "#FF12345",

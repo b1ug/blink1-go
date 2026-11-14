@@ -34,7 +34,12 @@ func (c *Controller) PlayStateBlocking(st LightState) error {
 }
 
 // PlayState fades the given LED to the specified RGB color over the specified time.
+// It rejects missing colors, invalid LED selectors, and durations that cannot be
+// represented exactly in the protocol before sending a device command.
 func (c *Controller) PlayState(st LightState) error {
+	if err := st.Validate(); err != nil {
+		return err
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -48,6 +53,9 @@ func (c *Controller) PlayState(st LightState) error {
 
 // PlayColor fades the all LED to the specified RGB color immediately.
 func (c *Controller) PlayColor(cl color.Color) error {
+	if err := validateStateColor(cl); err != nil {
+		return err
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

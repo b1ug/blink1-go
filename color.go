@@ -3,33 +3,58 @@ package blink1
 import (
 	"image/color"
 	"strings"
+
+	"github.com/b1ug/colorkit"
 )
 
-// GetColorNames returns the color names from the preset color map.
+// GetColorNames returns a sorted copy of the 148 supported opaque CSS names.
 func GetColorNames() []string {
-	// copy name slice
-	cls := make([]string, len(colorNames))
-	copy(cls, colorNames)
-	return cls
+	return colorkit.Names()
 }
 
-// GetColorByName returns the color corresponding to the given name from the preset color map.
+// GetColorByName looks up a CSS name using colorkit's bounded ASCII rules.
+// A successful result remains a concrete color.RGBA value with full opacity.
 // If the color is found, it returns the color and true, otherwise it returns nil and false.
 func GetColorByName(name string) (cl color.Color, found bool) {
-	n := strings.TrimSpace(strings.ToLower(name))
-	cl, found = presetColorMap[n]
-	return
+	rgb, ok := colorkit.LookupName(name)
+	if !ok {
+		return nil, false
+	}
+	return color.RGBA{R: rgb.R, G: rgb.G, B: rgb.B, A: 0xff}, true
 }
 
-// GetNameByColor returns the name corresponding to the given color from the preset color map.
+// cssHexNames is a derived reverse index, not a second named-color table.
+var cssHexNames = makeCSSHexNames()
+
+func makeCSSHexNames() map[string]string {
+	names := make(map[string]string)
+	// Names is sorted: otherwise equivalent aliases have a stable first choice.
+	for _, name := range colorkit.Names() {
+		rgb, _ := colorkit.LookupName(name)
+		hex := strings.ToUpper(rgb.Hex())
+		if _, exists := names[hex]; !exists {
+			names[hex] = name
+		}
+	}
+	// Preserve established SDK preferences and use gray rather than grey.
+	for _, name := range []string{"cyan", "magenta", "gray", "darkgray", "darkslategray", "dimgray", "lightgray", "lightslategray", "slategray"} {
+		rgb, _ := colorkit.LookupName(name)
+		names[strings.ToUpper(rgb.Hex())] = name
+	}
+	return names
+}
+
+// GetNameByColor returns a deterministic CSS name for the given color.
+// It prefers cyan, magenta, and gray spellings when aliases share a value.
 // If the color is found, it returns the name and true.
-// If the color is not found, it returns the hex string and false.
+// Otherwise it returns uppercase Hex and false. Existing alpha-ignoring,
+// high-eight-bit conversion behavior is retained.
 func GetNameByColor(cl color.Color) (name string, found bool) {
-	// check if color is in map
-	if name, ok := hexNameMap[convColorToHex(cl)]; ok {
+	hex := convColorToHex(cl)
+	if name, ok := cssHexNames[hex]; ok {
 		return name, true
 	}
-	return convColorToHex(cl), false
+	return hex, false
 }
 
 // GetNameOrHexByColor returns the name corresponding to the given color from the preset color map, or the hex string if the color is not found.

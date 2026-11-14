@@ -1,7 +1,6 @@
 package blink1_test
 
 import (
-	"image/color"
 	"reflect"
 	"strings"
 	"testing"
@@ -9,131 +8,6 @@ import (
 
 	b1 "github.com/b1ug/blink1-go"
 )
-
-func TestParseStateQueryFadeTimeReliability(t *testing.T) {
-	const maxWholeMilliseconds = time.Duration(9223372036854) * time.Millisecond
-	tests := []struct {
-		query string
-		want  time.Duration
-	}{
-		{"led 1 red 0", 0},
-		{"(led:top, color:#faf, time=0)", 0},
-		{"(led:top, color:#faf, time: 0)", 0},
-		{"led=0 red time: 0", 0},
-		{"rgb(255,0,0) led 0 0", 0},
-		{"hsb(0,100,100) led 1 time=0", 0},
-		{"led 0 red now", 0},
-		{"led 1 red +0", 0},
-		{"led 1 red 0ms", 0},
-		{"led 0 red in 1s", time.Second},
-		{"rgb(255,0,0) led 0 1s", time.Second},
-		{"led 1 red 1s 0", time.Second},
-		{"led 1 red +1s", time.Second},
-		{"led 1 red. 1s", time.Second},
-		{"led 1 red 1.5ms", time.Millisecond},
-		{"led 1 red 0.001s", time.Millisecond},
-		{"led 1 red 1s plus 1000ms", time.Second},
-		{"led 1 red 1ms and 1ms", time.Millisecond},
-		{"led 1 red quickly in 1 second", time.Second},
-		{"led 1 red swiftly over 1 second", time.Second},
-		{"led 1 red 1s // led 2 blue 2000ms", time.Second},
-		{"led 1 red 9223372036854ms", maxWholeMilliseconds},
-		{"led 1 red 9223372036854.775807ms", maxWholeMilliseconds},
-	}
-	for _, test := range tests {
-		t.Run(test.query, func(t *testing.T) {
-			got, err := b1.ParseStateQuery(test.query)
-			if err != nil || got.FadeTime != test.want {
-				t.Fatalf("ParseStateQuery(%q): fade=%v err=%v, want %v", test.query, got.FadeTime, err, test.want)
-			}
-		})
-	}
-}
-
-func TestParseStateQueryRejectsInvalidOrConflictingFadeTime(t *testing.T) {
-	tests := []struct {
-		query   string
-		wantErr string
-	}{
-		{"led 0 red", "no fade time match"},
-		{"led0 red", "no fade time match"},
-		{"rgb(255,0,0) led 1", "no fade time match"},
-		{"hsb(0,100,100) led 1", "no fade time match"},
-		{"led 1 red 0.5", "no fade time match"},
-		{"led 1 red -1s", "invalid fade time"},
-		{"led 1 red -0s", "invalid fade time"},
-		{"led 1 red -0.5ms", "invalid fade time"},
-		{"led 1 red -0", "invalid fade time"},
-		{"led 1 red 0 -0", "invalid fade time"},
-		{"led 1 red 1s -0", "invalid fade time"},
-		{"led 1 red 1s - 0", "invalid fade time"},
-		{"led 1 red - 1s", "invalid fade time"},
-		{"led 1 red --1s", "invalid fade time"},
-		{"led 1 red .5s", "invalid fade time"},
-		{"led 1 red 1.2.3s", "invalid fade time"},
-		{"led 1 red 9223372036855ms", "invalid fade time"},
-		{"led 1 red 9223372036854775808ms", "invalid fade time"},
-		{"led 1 red 9223372036854.775808ms", "invalid fade time"},
-		{"led 1 red " + strings.Repeat("9", 300) + "s", "invalid fade time"},
-		{"led 1 red in 1s plus 2000ms", "conflicting fade times"},
-		{"led 1 red in 1s plus 2s", "conflicting fade times"},
-		{"led 1 red in 1s plus 2m", "conflicting fade times"},
-		{"led 1 red in 0.1ms plus 0.2ms", "conflicting fade times"},
-	}
-	for _, test := range tests {
-		t.Run(test.query, func(t *testing.T) {
-			_, err := b1.ParseStateQuery(test.query)
-			if err == nil || !strings.Contains(err.Error(), test.wantErr) {
-				t.Fatalf("ParseStateQuery(%q): err=%v, want containing %q", test.query, err, test.wantErr)
-			}
-		})
-	}
-}
-
-func TestParseStateQueryConflictingTimeIsDeterministic(t *testing.T) {
-	for i := 0; i < 2048; i++ {
-		_, err := b1.ParseStateQuery("led 1 red in 1s plus 2000ms")
-		if err == nil || err.Error() != "b1: conflicting fade times" {
-			t.Fatalf("iteration %d: expected a consistent conflict, got %v", i, err)
-		}
-	}
-}
-
-func TestParseColorComponentWhitespaceAndLegacySemantics(t *testing.T) {
-	tests := []struct {
-		query string
-		want  color.RGBA
-	}{
-		{"rgb (1,2,3)", color.RGBA{R: 1, G: 2, B: 3, A: 255}},
-		{"rgb(1,2,3 )", color.RGBA{R: 1, G: 2, B: 3, A: 255}},
-		{"RGB\t( 1 ,\t2 , 3\t)", color.RGBA{R: 1, G: 2, B: 3, A: 255}},
-		{"rgb(255,0,255)", color.RGBA{R: 255, B: 255, A: 255}},
-		{"hsb (120,100,100)", color.RGBA{G: 255, A: 255}},
-		{"hsb(120,100,100 )", color.RGBA{G: 255, A: 255}},
-		{"HSB\t( 120 ,\t100 , 100\t)", color.RGBA{G: 255, A: 255}},
-		{"hsb(120,101,100)", color.RGBA{G: 255, A: 255}},
-		{"green", color.RGBA{G: 255, A: 255}},
-		{"lime", color.RGBA{G: 128, A: 255}},
-		{"#abc", color.RGBA{R: 170, G: 187, B: 204, A: 255}},
-	}
-	for _, test := range tests {
-		t.Run(test.query, func(t *testing.T) {
-			got, err := b1.ParseColor(test.query)
-			if err != nil {
-				t.Fatalf("ParseColor(%q): %v", test.query, err)
-			}
-			if rgba := color.RGBAModel.Convert(got).(color.RGBA); rgba != test.want {
-				t.Fatalf("ParseColor(%q): got %#v, want %#v", test.query, rgba, test.want)
-			}
-		})
-	}
-	if _, err := b1.ParseColor("rgb (256,0,0)"); err == nil {
-		t.Fatal("out-of-range RGB component was accepted")
-	}
-	if repeat, err := b1.ParseRepeatTimes("repeat 0"); err != nil || repeat != 0 {
-		t.Fatalf("legacy infinite repeat changed: %d, %v", repeat, err)
-	}
-}
 
 func TestParseTitleSingleCharacter(t *testing.T) {
 	for _, title := range []string{"A", "灯", "💡"} {

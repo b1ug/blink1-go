@@ -101,6 +101,9 @@ type LightState struct {
 
 // MarshalText implements the encoding.TextMarshaler interface.
 func (st LightState) MarshalText() (text []byte, err error) {
+	if err := validateStateColor(st.Color); err != nil {
+		return nil, err
+	}
 	s := fmt.Sprintf(`%sL%dT%d`,
 		convColorToHex(st.Color),
 		st.LED,
@@ -144,7 +147,11 @@ func (st *LightState) UnmarshalText(text []byte) error {
 // annotating each element by its field name, and using emojis and symbols for clarity and aesthetics.
 // For example: 🎨(color=#FF0000 led=1 fade=200ms)
 func (st LightState) String() string {
-	return fmt.Sprintf("🎨(color=%s led=%d fade=%v)", convColorToHex(st.Color), st.LED, st.FadeTime)
+	hex := "<nil>"
+	if validateStateColor(st.Color) == nil {
+		hex = convColorToHex(st.Color)
+	}
+	return fmt.Sprintf("🎨(color=%s led=%d fade=%v)", hex, st.LED, st.FadeTime)
 }
 
 var (
@@ -180,7 +187,10 @@ func (seq StateSequence) String() string {
 func (seq StateSequence) MarshalText() (text []byte, err error) {
 	ls := make([]string, len(seq))
 	for i, st := range seq {
-		b, _ := st.MarshalText()
+		b, err := st.MarshalText()
+		if err != nil {
+			return nil, fmt.Errorf("state[%d]: %w", i, err)
+		}
 		ls[i] = string(b)
 	}
 	return []byte(strings.Join(ls, stateSeqSeparator)), nil
