@@ -15,7 +15,19 @@ var (
 
 // ListDeviceInfo returns all HID device info of all blink(1) devices which are connected to the system. The returned slice is sorted by serial number.
 func ListDeviceInfo() []*hid.DeviceInfo {
-	infos := hid.ListAllDevices(IsBlink1Device)
+	return listDeviceInfo(hid.FindDevices)
+}
+
+// Keep the filter at the enumeration entry, rather than enumerating unrelated
+// HID collections and discarding them later. The transport determines how early
+// this restriction is applied by each native backend.
+func listDeviceInfo(findDevices func(uint16, uint16) <-chan *hid.DeviceInfo) []*hid.DeviceInfo {
+	var infos []*hid.DeviceInfo
+	for info := range findDevices(b1VendorID, b1ProductID) {
+		if IsBlink1Device(info) {
+			infos = append(infos, info)
+		}
+	}
 	sort.SliceStable(infos, func(i, j int) bool {
 		return infos[i].SerialNumber < infos[j].SerialNumber
 	})
@@ -24,14 +36,18 @@ func ListDeviceInfo() []*hid.DeviceInfo {
 
 // FindDeviceInfoBySerialNumber finds a connected blink(1) device with serial number and returns its HID device info.
 func FindDeviceInfoBySerialNumber(sn string) (*hid.DeviceInfo, error) {
-	dev := hid.ListFirstDevice(func(di *hid.DeviceInfo) bool {
-		return IsBlink1Device(di) && di.SerialNumber == sn
-	})
-	// not found
-	if dev == nil {
-		return nil, fmt.Errorf("%w for %q", errDeviceNotFound, sn)
+	return findDeviceInfoBySerialNumber(sn, hid.FindDevices)
+}
+
+func findDeviceInfoBySerialNumber(sn string, findDevices func(uint16, uint16) <-chan *hid.DeviceInfo) (*hid.DeviceInfo, error) {
+	// Collect the finite enumeration fully before returning a match, so neither
+	// the channel producer nor its native enumeration cleanup is left waiting.
+	for _, info := range listDeviceInfo(findDevices) {
+		if info.SerialNumber == sn {
+			return info, nil
+		}
 	}
-	return dev, nil
+	return nil, fmt.Errorf("%w for %q", errDeviceNotFound, sn)
 }
 
 // FindNextDeviceInfo returns the next HID device info of a blink(1) device which is connected to the system.
