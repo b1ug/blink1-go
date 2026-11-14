@@ -284,6 +284,9 @@ func (c *Controller) StopPlaying() error {
 func (c *Controller) StartAutoTickle(posStart, posEnd uint, keepOld bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.closed || c.dev == nil || c.dev.isClosed() {
+		return errDeviceClosed
+	}
 
 	// ensure range is valid
 	if !c.isPosRangeValid(posStart, posEnd) {
@@ -291,26 +294,26 @@ func (c *Controller) StartAutoTickle(posStart, posEnd uint, keepOld bool) error 
 	}
 
 	// if already started, stop it first
-	if c.quitCh != nil {
-		close(c.quitCh)
-	}
+	c.stopAutoTickle()
 
 	// prepare timeout ticker
 	timeout := 2 * time.Second
 	timeoutMsec := uint(timeout.Milliseconds())
 	timeoutMsec += timeoutMsec >> 1 // add 50% to timeout
 	ticker := time.NewTicker(timeout)
-	c.quitCh = make(chan struct{})
+	quitCh, doneCh := make(chan struct{}), make(chan struct{})
+	c.quitCh, c.tickleDoneCh = quitCh, doneCh
 
 	// start auto tickle
 	go func() {
+		defer close(doneCh)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
 				_ = c.dev.SetTickleMode(true, keepOld, posStart, posEnd, timeoutMsec)
-			case <-c.quitCh:
+			case <-quitCh:
 				// quit when tickQuit is closed
-				ticker.Stop()
 				_ = c.dev.SetTickleMode(false, keepOld, 0, 0, 0)
 				return
 			}
@@ -319,14 +322,24 @@ func (c *Controller) StartAutoTickle(posStart, posEnd uint, keepOld bool) error 
 	return nil
 }
 
-// StopAutoTickle stops the device from automatically tickling.
+// StopAutoTickle stops automatic tickling and waits for its worker to finish.
+// It is safe to call StopAutoTickle more than once.
 func (c *Controller) StopAutoTickle() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.quitCh != nil {
-		close(c.quitCh)
+	c.stopAutoTickle()
+}
+
+// stopAutoTickle requires c.mu. Workers do not take c.mu, so waiting here also
+// ensures an old worker cannot disable tickling after its replacement starts.
+func (c *Controller) stopAutoTickle() {
+	if c.quitCh == nil {
+		return
 	}
+	close(c.quitCh)
+	<-c.tickleDoneCh
+	c.quitCh, c.tickleDoneCh = nil, nil
 }
 
 // SimpleTickle sets the device to tickle once.
@@ -354,10 +367,14 @@ func (c *Controller) SimpleTickle(posStart, posEnd uint, timeout time.Duration, 
 // Signals should be sent to the returned channel to tickle before the timeout, otherwise the given pattern will be played.
 // If keepOld is true, the current pattern will be kept playing, otherwise it will be stopped.
 //
-// To stop the manual tickle, close the returned channel.
+// To stop the manual tickle, close the returned channel. Closing the Controller
+// also stops the worker; callers must stop sending before closing the Controller.
 func (c *Controller) StartManualTickle(posStart, posEnd uint, timeout time.Duration, keepOld bool) (chan<- struct{}, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.closed || c.dev == nil || c.dev.isClosed() {
+		return nil, errDeviceClosed
+	}
 
 	// ensure start < end and end < max
 	if !c.isPosRangeValid(posStart, posEnd) {
@@ -370,14 +387,27 @@ func (c *Controller) StartManualTickle(posStart, posEnd uint, timeout time.Durat
 	// prepare manual ticker
 	tickCh := make(chan struct{})
 	timeoutMsec := uint(timeout.Milliseconds())
+	if c.manualQuitCh == nil {
+		c.manualQuitCh = make(chan struct{})
+	}
+	quitCh := c.manualQuitCh
+	c.manualTickles.Add(1)
 
 	// start tickle
 	go func() {
-		for range tickCh {
-			_ = c.dev.SetTickleMode(true, keepOld, posStart, posEnd, timeoutMsec)
+		defer c.manualTickles.Done()
+		defer c.dev.SetTickleMode(false, keepOld, 0, 0, 0)
+		for {
+			select {
+			case _, ok := <-tickCh:
+				if !ok {
+					return
+				}
+				_ = c.dev.SetTickleMode(true, keepOld, posStart, posEnd, timeoutMsec)
+			case <-quitCh:
+				return
+			}
 		}
-		// quit when tickCh is closed
-		_ = c.dev.SetTickleMode(false, keepOld, 0, 0, 0)
 	}()
 	return tickCh, nil
 }

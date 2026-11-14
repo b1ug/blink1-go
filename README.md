@@ -31,6 +31,26 @@ go get -u github.com/b1ug/blink1-go@latest
 
 Please note that Go version 1.13 or higher and Cgo is required.
 
+## Continuous integration
+
+The native CI matrix builds the SDK and runs its software tests with the race
+detector and `go vet` on Ubuntu 24.04 (amd64/arm64), macOS 15 (arm64/Intel), and
+Windows Server 2022 (amd64), using Go 1.26.x and 1.27.x. Go 1.13.15 source
+compatibility is checked separately on Ubuntu 22.04. These are configured
+checks; a result applies only to the exact commit that ran successfully.
+
+The default tests cover color conversion, parsing, and serialization without
+opening hardware. Hardware examples without an `Output` comment are compiled
+but are not executed by `go test`. CI does not enumerate or open USB devices
+and does not verify physical unplug/replug, older operating systems, Windows
+386, or blink(1) mk3. Passing the Go 1.13 source check is not a claim that every
+current native dependency or OS supports that old toolchain.
+
+Actions are pinned to reviewed release commits, checkout credentials are not
+persisted, and jobs use read-only repository permissions. Module resolution
+uses the committed GID version with `GOWORK=off` and `-mod=readonly`; it does not
+use a local workspace replacement or upgrade dependencies.
+
 ## Usage
 
 Here's how to use the *Device API* to instantly set all LEDs to blue:
@@ -74,7 +94,7 @@ func main() {
 }
 ```
 
-If you want to get the state from a natural language query, you can try this:
+To extract one light state from an English field query, you can try this:
 
 ```go
 func main() {
@@ -85,6 +105,19 @@ func main() {
 	fmt.Println(st)
 }
 ```
+
+`ParseStateQuery` extracts a color, fade time and LED selector; all three are
+required. Parsing does not open a device or change the light. This helper does
+not interpret action verbs, negation or multiple instructions, so arbitrary
+natural-language instructions should not be treated as executable commands.
+
+Explicit numeric times take precedence over immediate words such as `now`.
+Repeated numeric times must agree (`1s` and `1000ms` agree); conflicting,
+negative or overflowing times return an error. A standalone `0` or `time=0`
+means immediate, while zero inside `led 0` or an RGB/HSB color does not supply a
+missing fade time. Fractional milliseconds retain the historical truncation to
+whole milliseconds. Existing color names and RGB/HSB conversion semantics are
+unchanged.
 
 For more examples, please refer to [go.dev](https://pkg.go.dev/github.com/b1ug/blink1-go#pkg-examples).
 

@@ -254,7 +254,7 @@ func (b1 *Device) GetVersion() (ver int, err error) {
 	}
 
 	// parse result
-	ver = int((buf[3]-'0')*100) + int(buf[4]-'0')
+	ver = int(buf[3]-'0')*100 + int(buf[4]-'0')
 	return
 }
 
