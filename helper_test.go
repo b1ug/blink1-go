@@ -2,13 +2,16 @@ package blink1_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/color"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	b1 "github.com/b1ug/blink1-go"
+	"github.com/b1ug/colorkit"
 )
 
 func TestPreload(t *testing.T) {
@@ -628,5 +631,50 @@ func TestRGBToHex(t *testing.T) {
 				t.Errorf("RGBToHex(%v, %v, %v) got = %v, want = %v", tt.r, tt.g, tt.b, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLightStatePublicPreflightNeedsNoConversion(t *testing.T) {
+	state := b1.NewLightState(colorkit.RGB8{G: 255}, 20*time.Millisecond, b1.LED2)
+	if err := state.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		state b1.LightState
+		field string
+	}{
+		{b1.LightState{}, "color"},
+		{b1.NewLightState(b1.ColorRed, 15*time.Millisecond, b1.LED1), "fade"},
+		{b1.NewLightState(b1.ColorRed, 0, b1.LEDIndex(255)), "led"},
+	} {
+		var detail *b1.ParseError
+		if err := tc.state.Validate(); !errors.As(err, &detail) || detail.Field != tc.field {
+			t.Fatalf("public preflight lost the field diagnostic: %v", err)
+		}
+	}
+}
+
+func TestStateSequenceEncodingPropagatesMissingColorsAtomically(t *testing.T) {
+	var typedNil *color.RGBA
+	valid := b1.NewLightState(b1.ColorRed, 20*time.Millisecond, b1.LED1)
+	for _, bad := range []b1.LightState{{}, {Color: typedNil}} {
+		for _, sequence := range []b1.StateSequence{{bad}, {valid, bad}, {bad, valid}} {
+			text, err := sequence.MarshalText()
+			if err == nil || text != nil || !strings.Contains(err.Error(), "state[") {
+				t.Fatalf("invalid sequence was partially encoded: %q %v", text, err)
+			}
+			var detail *b1.ParseError
+			if !errors.As(err, &detail) || detail.Field != "color" {
+				t.Fatalf("lost the underlying color error: %v", err)
+			}
+			encoded, err := json.Marshal(sequence)
+			if err == nil || encoded != nil || !errors.As(err, &detail) {
+				t.Fatalf("JSON hid a sequence encoding error: %s %v", encoded, err)
+			}
+			encoded, err = json.Marshal(b1.Pattern{Sequence: sequence})
+			if err == nil || encoded != nil {
+				t.Fatalf("Pattern JSON hid a sequence encoding error: %s %v", encoded, err)
+			}
+		}
 	}
 }
