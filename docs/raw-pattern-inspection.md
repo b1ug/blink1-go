@@ -1,8 +1,8 @@
 # Raw RAM and playback inspection
 
-This local SDK candidate adds `Device.ReadPatternLineRaw(position)` and `Device.ReadPlaystateRaw()`. It does not change the older `ReadPatternLine`, `ReadPlaystate`, transport helpers, module pin, or capability facts. These methods query an already-open device; they never enumerate, open, stop, upload, play, persist, configure startup, or retry.
+The SDK provides `Device.ReadPatternLineRaw(position)` and `Device.ReadPlaystateRaw()` alongside the older `ReadPatternLine` and `ReadPlaystate` methods. These inspection methods preserve the existing transport and capability contracts. They query an already-open device; they never enumerate, open, stop, upload, play, persist, configure startup, or retry.
 
-The returned observations preserve raw data before an application decides how to interpret it. They are not host Patterns, atomic multi-row snapshots, recovered recipes, Flash readback, or completion proofs. The candidate has fake-HID software evidence only; no device operation is physically qualified by it.
+The returned observations preserve raw data before an application decides how to interpret it. They are not host Patterns, atomic multi-row snapshots, recovered recipes, Flash readback, or completion proofs. The inspection tests use a fake HID backend; those tests alone do not physically qualify a device operation.
 
 ## First retain the observation, then interpret it
 
