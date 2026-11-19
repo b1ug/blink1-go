@@ -116,8 +116,6 @@ func IdentifyPatternCapabilities(info *hid.DeviceInfo, firmwareVersion int) Patt
 	switch profile.Identity.Model {
 	case ProfileModelMK2:
 		referenceFirmware := 205
-		profile.ReferenceFirmwareVersion = &referenceFirmware
-		profile.Applicability = PatternApplicabilityModelOnly
 		capacity := PatternCapabilitySource{
 			ID:  "mk2-pattern-capacity-fw205",
 			URL: "https://github.com/todbot/blink1/blob/101abe3599c661c4dd4d1204b4d50fb592293143/hardware/firmware_mk2/main.c#L140-L169",
@@ -126,9 +124,22 @@ func IdentifyPatternCapabilities(info *hid.DeviceInfo, firmwareVersion int) Patt
 			ID:  "mk2-pattern-flash-fw205",
 			URL: "https://github.com/todbot/blink1/blob/101abe3599c661c4dd4d1204b4d50fb592293143/hardware/firmware_mk2/main.c#L330-L340",
 		}
+		if firmwareVersion == 204 {
+			referenceFirmware = 204
+			capacity = PatternCapabilitySource{
+				ID:  "mk2-pattern-capacity-fw204",
+				URL: "https://github.com/todbot/blink1/blob/f4bf437fa016b2975675fecc2ad18fd04c955fa8/hardware/firmware_mk2/main.c#L140-L166",
+			}
+			persistence = PatternCapabilitySource{
+				ID:  "mk2-pattern-flash-fw204",
+				URL: "https://github.com/todbot/blink1/blob/f4bf437fa016b2975675fecc2ad18fd04c955fa8/hardware/firmware_mk2/main.c#L321-L336",
+			}
+		}
+		profile.ReferenceFirmwareVersion = &referenceFirmware
+		profile.Applicability = PatternApplicabilityModelOnly
 		profile.Storage.RAMLines = knownPatternInt(32, PatternEvidenceSourceInferred, capacity)
 		profile.Storage.FlashLines = knownPatternInt(16, PatternEvidenceSourceInferred, capacity, persistence)
-		if firmwareVersion == 205 {
+		if firmwareVersion == referenceFirmware {
 			profile.Applicability = PatternApplicabilityFirmwareMatched
 			profile.Storage.UsableFlashLines = knownPatternInt(16, PatternEvidenceSourceInferred, capacity, persistence)
 			profile.Storage.StartupReservedLines = knownPatternInt(0, PatternEvidenceSourceInferred, capacity, persistence)

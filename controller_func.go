@@ -235,7 +235,10 @@ func (c *Controller) ReadPattern() (StateSequence, error) {
 	return ls, nil
 }
 
-// WritePattern writes the pattern stored in the device's RAM to its flash. For mk2 device, only the first 16 patterns can be saved.
+// WritePattern requests a Flash commit of the device's current RAM pattern.
+// The affected rows and startup settings depend on the firmware. See
+// IdentifyPatternCapabilities for reference limits and SavePattern for the
+// meaning of the return value.
 func (c *Controller) WritePattern() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
