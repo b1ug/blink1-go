@@ -54,6 +54,28 @@ the firmware differs. `reference_firmware` is null when no source profile is
 selected. Unknown capacities and reserved lines have `value: null`, not zero.
 Known zero reserved lines in the exact public profiles is explicitly different.
 
+## Flash preflight
+
+1. Query `device.GetVersion()` and use `device.GetDeviceInfo()` from the same
+   device. Resolve `IdentifyPatternCapabilities(info, firmwareVersion)`.
+2. Require `Applicability == PatternApplicabilityFirmwareMatched` and a known
+   `Storage.UsableFlashLines.Value`. An unknown value has no safe default.
+   `Storage.FlashLines` may describe a firmware reference for the model and is
+   unsuitable as a substitute for the target's usable limit.
+3. Check every intended position before staging any rows in RAM. For a nonempty
+   sequence at zero-based `start`, require `0 <= start < limit` and
+   `len(rows) <= limit - start`. The matched MK2 Flash range is **0–15** and
+   the matched MK3 Flash range is **0–31**. A row may fit RAM without fitting
+   the Flash range. Reject out-of-range input before writing.
+4. Account for the complete affected Flash contents before committing. The
+   save command has no row count or per-row commit range. On MK3 FW304 it also
+   persists the current startup settings. Confirm persistence after an actual
+   power cycle by checking the boot-loaded content for the same device.
+
+This helper supplies the capacity check to the application. `SavePattern`
+submits the write command and returns the transport result. No Notes I/O is
+provided by the SDK.
+
 For MK2 206+, the official C header documents startup support, so its support
 fact is `documented`. The reviewed MK2 implementations do not resolve the newer
 reserved-line layout or startup persistence behavior. The resolver

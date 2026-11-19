@@ -223,12 +223,11 @@ func TestPatternCapabilitiesJSONKeepsUnknownZeroAndFalseDistinct(t *testing.T) {
 }
 
 func TestPatternCapabilitiesEvidenceUsesImmutablePublicSources(t *testing.T) {
-	for _, model := range []string{ProfileModelMK2, ProfileModelMK3} {
-		firmware := 206
-		if model == ProfileModelMK3 {
-			firmware = 304
-		}
-		profile := IdentifyPatternCapabilities(patternTestMetadata(model), firmware)
+	for _, target := range []struct {
+		model    string
+		firmware int
+	}{{ProfileModelMK2, 204}, {ProfileModelMK2, 206}, {ProfileModelMK3, 304}} {
+		profile := IdentifyPatternCapabilities(patternTestMetadata(target.model), target.firmware)
 		data, err := json.Marshal(profile)
 		if err != nil {
 			t.Fatal(err)
