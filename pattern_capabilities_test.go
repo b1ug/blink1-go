@@ -66,7 +66,7 @@ func TestPatternCapabilitiesFirmwareApplicability(t *testing.T) {
 		startupKnown               bool
 	}{
 		{"mk2 unknown firmware", ProfileModelMK2, PatternApplicabilityModelOnly, 0, 205, 32, 16, 0, false, false},
-		{"mk2 connected204 is not205", ProfileModelMK2, PatternApplicabilityModelOnly, 204, 205, 32, 16, 0, false, false},
+		{"mk2 public204", ProfileModelMK2, PatternApplicabilityFirmwareMatched, 204, 204, 32, 16, 16, true, false},
 		{"mk2 public205", ProfileModelMK2, PatternApplicabilityFirmwareMatched, 205, 205, 32, 16, 16, true, false},
 		{"mk2 documented206 unresolved layout", ProfileModelMK2, PatternApplicabilityUnresolved, 206, 205, 32, 16, 0, false, true},
 		{"mk2 later209 not silently matched", ProfileModelMK2, PatternApplicabilityUnresolved, 209, 205, 32, 16, 0, false, true},
@@ -89,6 +89,12 @@ func TestPatternCapabilitiesFirmwareApplicability(t *testing.T) {
 			assertPatternInt(t, got.Storage.FlashLines, tc.flash, true)
 			assertPatternInt(t, got.Storage.UsableFlashLines, tc.usable, tc.usableKnown)
 			assertPatternInt(t, got.Storage.StartupReservedLines, 0, tc.usableKnown)
+			if tc.firmware == 204 {
+				sources := got.Storage.FlashLines.Evidence.Sources
+				if len(sources) != 2 || sources[0].ID != "mk2-pattern-capacity-fw204" || sources[1].ID != "mk2-pattern-flash-fw204" {
+					t.Fatalf("FW204 Flash evidence uses the wrong source: %#v", sources)
+				}
+			}
 			assertPatternBool(t, got.Startup.Supported, true, tc.startupKnown)
 			assertPatternBool(t, got.ArbitraryUserRAMSupported, false, false)
 			if tc.model == ProfileModelMK2 {
@@ -217,12 +223,11 @@ func TestPatternCapabilitiesJSONKeepsUnknownZeroAndFalseDistinct(t *testing.T) {
 }
 
 func TestPatternCapabilitiesEvidenceUsesImmutablePublicSources(t *testing.T) {
-	for _, model := range []string{ProfileModelMK2, ProfileModelMK3} {
-		firmware := 206
-		if model == ProfileModelMK3 {
-			firmware = 304
-		}
-		profile := IdentifyPatternCapabilities(patternTestMetadata(model), firmware)
+	for _, target := range []struct {
+		model    string
+		firmware int
+	}{{ProfileModelMK2, 204}, {ProfileModelMK2, 206}, {ProfileModelMK3, 304}} {
+		profile := IdentifyPatternCapabilities(patternTestMetadata(target.model), target.firmware)
 		data, err := json.Marshal(profile)
 		if err != nil {
 			t.Fatal(err)
@@ -265,8 +270,8 @@ func ExampleIdentifyPatternCapabilities() {
 	fmt.Println(profile.Storage.UsableFlashLines.Knowledge, profile.Storage.UsableFlashLines.Value == nil)
 	fmt.Println(profile.HardwareVerified, profile.Qualification[0].Status)
 	// Output:
-	// 204 205 model-only
+	// 204 204 firmware-matched
 	// 32 16
-	// unknown true
+	// known false
 	// false unverified
 }

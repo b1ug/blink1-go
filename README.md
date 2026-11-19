@@ -190,6 +190,12 @@ For more examples, please refer to [go.dev](https://pkg.go.dev/github.com/b1ug/b
 
 ## Saving device patterns
 
+Before staging a Pattern for Flash, call `GetVersion` and resolve
+`IdentifyPatternCapabilities` with the same device's HID metadata. Preflight
+against `Storage.UsableFlashLines` on a firmware-matched profile. The reference
+limits are 16 lines for MK2 FW204/FW205 and 32 for MK3 FW304. See the
+[capacity and preflight guide](docs/pattern-capabilities.md#flash-preflight).
+
 `Device.SavePattern` and `Controller.WritePattern` return feature-write errors,
 including transport timeouts, instead of treating them as successful saves.
 They send the existing save report once, without automatic retries or readback.

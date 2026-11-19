@@ -17,7 +17,7 @@ be a separate checked artifact; it must not truncate or replace the host copy.
    links. Capacity, Notes and persistence effects are separate facts.
 2. **Does that reference apply to this firmware?** `applicability` is
    `firmware-matched`, `model-only`, or `unresolved`. The public implementation
-   versions are MK2 205 and MK3 304. A version match means only that the supplied
+   versions are MK2 204 and 205, and MK3 304. A version match means only that the supplied
    integer matches the source's reported version; it does not attest the actual
    firmware image or establish physical compatibility.
 3. **What operation has been physically qualified?** Every returned operation
@@ -41,7 +41,8 @@ validated two-digit ASCII reply format (`major*100+minor`).
 
 | Supplied target | Reference firmware | Applicability | RAM / physical flash reference | Usable ordinary flash lines |
 | --- | --- | --- | --- | --- |
-| MK2, firmware unknown or 204 | 205 | model-only | 32 / 16 | unknown |
+| MK2, firmware unknown or earlier than 204 | 205 | model-only | 32 / 16 | unknown |
+| MK2, firmware 204 | 204 | firmware-matched | 32 / 16 | 16, source-inferred |
 | MK2, firmware 205 | 205 | firmware-matched | 32 / 16 | 16, source-inferred |
 | MK2, firmware 206–209 | 205 plus startup documentation | unresolved | 32 / 16 from 205 | unknown |
 | MK3, firmware unknown, 303 or another recognized 3xx version | 304 | model-only | 32 / 32 | unknown |
@@ -53,9 +54,31 @@ the firmware differs. `reference_firmware` is null when no source profile is
 selected. Unknown capacities and reserved lines have `value: null`, not zero.
 Known zero reserved lines in the exact public profiles is explicitly different.
 
+## Flash preflight
+
+1. Query `device.GetVersion()` and use `device.GetDeviceInfo()` from the same
+   device. Resolve `IdentifyPatternCapabilities(info, firmwareVersion)`.
+2. Require `Applicability == PatternApplicabilityFirmwareMatched` and a known
+   `Storage.UsableFlashLines.Value`. An unknown value has no safe default.
+   `Storage.FlashLines` may describe a firmware reference for the model and is
+   unsuitable as a substitute for the target's usable limit.
+3. Check every intended position before staging any rows in RAM. For a nonempty
+   sequence at zero-based `start`, require `0 <= start < limit` and
+   `len(rows) <= limit - start`. The matched MK2 Flash range is **0–15** and
+   the matched MK3 Flash range is **0–31**. A row may fit RAM without fitting
+   the Flash range. Reject out-of-range input before writing.
+4. Account for the complete affected Flash contents before committing. The
+   save command has no row count or per-row commit range. On MK3 FW304 it also
+   persists the current startup settings. Confirm persistence after an actual
+   power cycle by checking the boot-loaded content for the same device.
+
+This helper supplies the capacity check to the application. `SavePattern`
+submits the write command and returns the transport result. No Notes I/O is
+provided by the SDK.
+
 For MK2 206+, the official C header documents startup support, so its support
-fact is `documented`. The reviewed MK2 implementation is 205 and does not resolve
-the newer reserved-line layout or startup persistence behavior. The resolver
+fact is `documented`. The reviewed MK2 implementations do not resolve the newer
+reserved-line layout or startup persistence behavior. The resolver
 does not guess 15 usable lines or guarantee all 16 for ordinary Patterns.
 
 No Notes support was established for MK2 by this review. That is **unknown**,
@@ -65,10 +88,13 @@ support fact is likewise unknown for both models.
 
 ## Notes and persistence effects
 
-The public MK3 304 reference has **32 playable Pattern RAM lines and 32 flash
-lines**. Its separate Notes page contains **20 slots of 50 bytes**. These are
-bytes, not Unicode characters, and are not additional animation rows. Total MCU
-RAM is not an arbitrary application storage allowance.
+The [MK3 firmware-v304 release](https://github.com/todbot/blink1mk3/releases/tag/firmware-v304)
+has **32 playable Pattern RAM lines and 32 Flash lines**. Its separate Notes page
+contains **20 slots of 50 bytes**. The current release asset contains the 304a
+update, whose [firmware source](https://github.com/todbot/blink1mk3/commit/ccf04e26726a4a41ef9689653ae12baa73dbc456)
+keeps the reported version at 304. The SDK cannot identify the package revision
+from that version response. Notes count bytes and occupy a separate data page.
+The firmware's internal MCU RAM size provides no arbitrary-user storage bound.
 
 The reference also establishes distinct persistent effects:
 
@@ -102,10 +128,10 @@ info := &hid.DeviceInfo{
 }
 profile := b1.IdentifyPatternCapabilities(info, 204)
 // profile.Identity.FirmwareVersion == 204
-// *profile.ReferenceFirmwareVersion == 205
-// profile.Applicability == b1.PatternApplicabilityModelOnly
+// *profile.ReferenceFirmwareVersion == 204
+// profile.Applicability == b1.PatternApplicabilityFirmwareMatched
 // *profile.Storage.RAMLines.Value == 32: a reference fact, not a test result.
-// profile.Storage.UsableFlashLines.Value == nil: unknown, not zero.
+// *profile.Storage.UsableFlashLines.Value == 16: a reference fact.
 // profile.HardwareVerified == false
 ```
 
@@ -116,11 +142,14 @@ it cannot create trusted hardware evidence or authorize an operation.
 
 ## Fixed primary references
 
+- [MK2 204 capacity](https://github.com/todbot/blink1/blob/f4bf437fa016b2975675fecc2ad18fd04c955fa8/hardware/firmware_mk2/main.c#L140-L166)
+  and [flash write scope](https://github.com/todbot/blink1/blob/f4bf437fa016b2975675fecc2ad18fd04c955fa8/hardware/firmware_mk2/main.c#L321-L336).
 - [MK2 205 capacity](https://github.com/todbot/blink1/blob/101abe3599c661c4dd4d1204b4d50fb592293143/hardware/firmware_mk2/main.c#L140-L169)
   and [flash write scope](https://github.com/todbot/blink1/blob/101abe3599c661c4dd4d1204b4d50fb592293143/hardware/firmware_mk2/main.c#L330-L340).
 - [MK2 206+ startup documentation](https://github.com/todbot/blink1-tool/blob/f1547015b7f98d7f2e0b5f3b8bc32388c4015585/blink1-lib.h#L341-L352).
-- [MK3 304 storage structures](https://github.com/todbot/blink1mk3/blob/ccf04e26726a4a41ef9689653ae12baa73dbc456/firmware/firmware-v30x/main.c#L189-L218),
-  [persistent page routines](https://github.com/todbot/blink1mk3/blob/ccf04e26726a4a41ef9689653ae12baa73dbc456/firmware/firmware-v30x/main.c#L441-L508),
+- [MK3 304 storage structures at release tag](https://github.com/todbot/blink1mk3/blob/c8348f38834c518d22f727f061909ddfeab1d94c/firmware/firmware-v30x/main.c#L189-L218)
+  and in the [304a source](https://github.com/todbot/blink1mk3/blob/ccf04e26726a4a41ef9689653ae12baa73dbc456/firmware/firmware-v30x/main.c#L189-L218).
+  See also [persistent page routines](https://github.com/todbot/blink1mk3/blob/ccf04e26726a4a41ef9689653ae12baa73dbc456/firmware/firmware-v30x/main.c#L441-L508),
   [startup write](https://github.com/todbot/blink1mk3/blob/ccf04e26726a4a41ef9689653ae12baa73dbc456/firmware/firmware-v30x/main.c#L1169-L1190),
   and [Notes write](https://github.com/todbot/blink1mk3/blob/ccf04e26726a4a41ef9689653ae12baa73dbc456/firmware/firmware-v30x/main.c#L1292-L1307).
 
